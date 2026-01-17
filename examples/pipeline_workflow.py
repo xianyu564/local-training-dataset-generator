@@ -6,8 +6,12 @@ This example demonstrates the complete pipeline from code slicing to final datas
 此示例演示从代码切片到最终数据集编译的完整流水线。
 """
 
+import sys
 import logging
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pipeline.code_slicer import CodeSlicer
 from src.pipeline.batch_processor import BatchProcessor

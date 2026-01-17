@@ -6,8 +6,12 @@ This script demonstrates using config.yaml to drive the pipeline process.
 此脚本演示使用config.yaml驱动流水线过程。
 """
 
+import sys
 import logging
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pipeline.code_slicer import CodeSlicer
 from src.pipeline.batch_processor import BatchProcessor
