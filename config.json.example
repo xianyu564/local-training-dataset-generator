@@ -2,7 +2,6 @@
   "openai": {
     "api_key": "sk-proj-******",
     "organization_id": "org-******",
-    "model": "gpt-5-nano-20250807",
-    "max_tokens": 128000
+    "model": "gpt-5-nano-2025-08-07"
   }
 } 

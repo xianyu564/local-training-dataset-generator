@@ -226,6 +226,8 @@ config.json
 code_slices.jsonl
 *_batch_input_*.jsonl
 *_responses_*.jsonl
+batch_*_output.jsonl
+
 *_training_data_*.jsonl
 training_dataset.jsonl
 dataset_statistics.json

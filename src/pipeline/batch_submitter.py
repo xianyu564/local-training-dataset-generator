@@ -98,7 +98,7 @@ class BatchSubmitter:
             "timestamp": datetime.now().isoformat()
         }
 
-        # Find all batch input files
+        # Find all batch input files (exclude subdirectories)   
         batch_files = list(input_dir.glob("*_batch_input_*.jsonl"))
         logger.info(f"Found {len(batch_files)} batch input files")
 
@@ -183,12 +183,21 @@ class BatchSubmitter:
 
         batch = self.client.batches.retrieve(batch_id)
 
+        # Convert BatchRequestCounts object to dictionary if it exists
+        request_counts = None
+        if hasattr(batch, 'request_counts') and batch.request_counts:
+            request_counts = {
+                "total": batch.request_counts.total,
+                "completed": batch.request_counts.completed,
+                "failed": batch.request_counts.failed
+            }
+
         status_info = {
             "batch_id": batch.id,
             "status": batch.status,
             "created_at": batch.created_at,
             "completed_at": getattr(batch, 'completed_at', None),
-            "request_counts": getattr(batch, 'request_counts', None),
+            "request_counts": request_counts,
             "output_file_id": getattr(batch, 'output_file_id', None),
             "error_file_id": getattr(batch, 'error_file_id', None)
         }

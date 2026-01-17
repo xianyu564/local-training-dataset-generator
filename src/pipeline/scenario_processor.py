@@ -83,13 +83,11 @@ class ScenarioProcessor:
         else:
             # Default configuration
             return {
-                "model": "gpt-4o-mini",
-                "max_tokens": 2000,
-                "temperature": 0.7
+                "model": "gpt-5-nano-2025-08-07"
             }
 
     def process_reviewed_slices(self, reviewed_slices_dir: str = "data/2.reviewed_slices",
-                               max_scenario1: int = 100, max_scenario2: int = 50) -> Dict[str, str]:
+                               max_scenario1: int = 100000, max_scenario2: int = 100000) -> Dict[str, str]:
         """
         Process reviewed slices into batch input JSONL files with trace requirements
         将审核后的切片处理为包含推理轨迹需求的批处理输入JSONL文件
@@ -182,7 +180,7 @@ class ScenarioProcessor:
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": self.config.get("model", "gpt-5-nano-20250807"),
+                "model": self.config.get("model", "gpt-5-nano-2025-08-07"),
                 "messages": [
                     {
                         "role": "system",
@@ -193,7 +191,6 @@ class ScenarioProcessor:
                         "content": prompt
                     }
                 ],
-                "max_tokens": self.config.get("max_tokens", 128000)
             }
         }
 
@@ -213,7 +210,7 @@ class ScenarioProcessor:
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": self.config.get("model", "gpt-5-nano-20250807"),
+                "model": self.config.get("model", "gpt-5-nano-2025-08-07"),
                 "messages": [
                     {
                         "role": "system",
@@ -223,8 +220,7 @@ class ScenarioProcessor:
                         "role": "user",
                         "content": prompt
                     }
-                ],
-                "max_tokens": self.config.get("max_tokens", 128000),
+                ]
             }
         }
 
@@ -345,9 +341,9 @@ def main():
                        help="Directory containing reviewed slice JSONL files")
     parser.add_argument("--output-dir", "-o", default="data/3.batch_input",
                        help="Output directory for batch input files")
-    parser.add_argument("--max-scenario1", "-s1", type=int, default=100,
+    parser.add_argument("--max-scenario1", "-s1", type=int, default=100000,
                        help="Maximum items for scenario 1 (functions for QA)")
-    parser.add_argument("--max-scenario2", "-s2", type=int, default=50,
+    parser.add_argument("--max-scenario2", "-s2", type=int, default=100000,
                        help="Maximum items for scenario 2 (classes for design)")
 
     args = parser.parse_args()
@@ -386,8 +382,8 @@ python src/pipeline/scenario_processor.py \
 
 # 3. 控制数据量 - Control data volume
 python src/pipeline/scenario_processor.py \
-  --max-scenario1 200 \
-  --max-scenario2 100
+  --max-scenario1 100000 \
+  --max-scenario2 100000    
 
 # 4. Python API 调用 / Python API Usage
 from src.pipeline.scenario_processor import ScenarioProcessor
@@ -406,6 +402,8 @@ print("Generated JSONL files:", results)
 """
 
 # D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_fastapi_light/ --output-dir ./data/3.batch_input/repo_fastapi_light/   
+# D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_ecommerce_medium/ --output-dir ./data/3.batch_input/repo_ecommerce_medium/   
+# D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_iot_special/ --output-dir ./data/3.batch_input/repo_iot_special/   
 
 # =============================================================================
 # 场景区分 / Scenario Differentiation
