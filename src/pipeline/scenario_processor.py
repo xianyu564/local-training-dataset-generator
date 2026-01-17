@@ -1,36 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Scenario Processor - Convert reviewed slices to batch input
-场景处理器 - 将审核后的切片转换为批处理输入
+Scenario Processor - Generate Batch Input JSONL from Reviewed Slices
+场景处理器 - 从审核后的切片生成批处理输入JSONL
 
-Converts data/2.reviewed_slices to data/3.batch_input for scenarios 1 and 2.
-将 data/2.reviewed_slices 转换为 data/3.batch_input，用于场景1和场景2。
+Converts data/2.reviewed_slices to data/3.batch_input JSONL files with trace requirements.
+将 data/2.reviewed_slices 转换为 data/3.batch_input JSONL文件，包含推理轨迹需求。
 """
 
 import json
 import logging
+import random
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from dataclasses import dataclass
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class BatchRequest:
-    """Represents a batch API request / 代表一个批处理API请求"""
-    custom_id: str
-    method: str
-    url: str
-    body: Dict[str, Any]
-
-
 class ScenarioProcessor:
     """
-    Process reviewed slices into batch input for scenarios 1 and 2
-    将审核后的切片处理为场景1和场景2的批处理输入
+    Process reviewed slices into batch input JSONL files
+    将审核后的切片处理为批处理输入JSONL文件
     """
 
     def __init__(self, output_dir: str = "data/3.batch_input"):
@@ -38,16 +29,45 @@ class ScenarioProcessor:
         Initialize ScenarioProcessor
 
         Args:
-            output_dir: Directory to save batch input files
+            output_dir: Directory to save batch input JSONL files
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Predefined requirements for scenario 2
+        self.scenario2_requirements = [
+            {
+                "title": "增加微信支付功能",
+                "description": "为电商系统添加微信支付支持，需要处理支付回调和退款",
+                "constraints": ["必须复用现有的支付接口抽象", "支持微信小程序和H5"]
+            },
+            {
+                "title": "实现用户行为分析",
+                "description": "添加用户行为追踪和分析功能，包括点击流和转化率统计",
+                "constraints": ["使用现有的事件系统", "数据存储到现有数据库"]
+            },
+            {
+                "title": "添加缓存层",
+                "description": "为频繁查询的接口添加Redis缓存，提高响应速度",
+                "constraints": ["保持现有API接口不变", "支持缓存失效策略"]
+            },
+            {
+                "title": "实现文件上传服务",
+                "description": "添加安全的文件上传、存储和访问功能",
+                "constraints": ["支持多种文件类型", "集成现有的权限系统"]
+            },
+            {
+                "title": "添加消息通知系统",
+                "description": "实现邮件、短信、站内信等多种通知方式",
+                "constraints": ["使用异步队列处理", "支持模板化消息"]
+            }
+        ]
+
     def process_reviewed_slices(self, reviewed_slices_dir: str = "data/2.reviewed_slices",
                                max_scenario1: int = 100, max_scenario2: int = 50) -> Dict[str, str]:
         """
-        Process all reviewed slice files into batch input
-        将所有审核后的切片文件处理为批处理输入
+        Process reviewed slices into batch input JSONL files with trace requirements
+        将审核后的切片处理为包含推理轨迹需求的批处理输入JSONL文件
 
         Args:
             reviewed_slices_dir: Directory containing reviewed slice JSONL files
@@ -72,229 +92,240 @@ class ScenarioProcessor:
 
         logger.info(f"Total reviewed slices loaded: {len(all_slices)}")
 
-        # Split by scenario
+        # Split by scenario: functions for scenario1, classes for scenario2
         scenario1_slices = [s for s in all_slices if s.get('type') == 'function'][:max_scenario1]
         scenario2_slices = [s for s in all_slices if s.get('type') == 'class'][:max_scenario2]
 
-        logger.info(f"Scenario 1 slices: {len(scenario1_slices)}")
-        logger.info(f"Scenario 2 slices: {len(scenario2_slices)}")
+        logger.info(f"Scenario 1 slices (functions): {len(scenario1_slices)}")
+        logger.info(f"Scenario 2 slices (classes): {len(scenario2_slices)}")
 
-        # Create batch requests
         results = {}
 
+        # Generate scenario 1 JSONL (functions with full code)
         if scenario1_slices:
-            scenario1_requests = self._create_scenario1_requests(scenario1_slices)
-            scenario1_file = self._export_batch_requests(scenario1_requests, "scenario1")
+            scenario1_file = self._generate_scenario1_jsonl(scenario1_slices)
             results["scenario1"] = scenario1_file
-            logger.info(f"Scenario 1 batch input created: {scenario1_file}")
+            logger.info(f"Scenario 1 JSONL created: {scenario1_file}")
 
+        # Generate scenario 2 JSONL (classes with architecture skeleton)
         if scenario2_slices:
-            scenario2_requests = self._create_scenario2_requests(scenario2_slices)
-            scenario2_file = self._export_batch_requests(scenario2_requests, "scenario2")
+            scenario2_file = self._generate_scenario2_jsonl(scenario2_slices)
             results["scenario2"] = scenario2_file
-            logger.info(f"Scenario 2 batch input created: {scenario2_file}")
+            logger.info(f"Scenario 2 JSONL created: {scenario2_file}")
 
         return results
 
-    def _create_scenario1_requests(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
-        """Create batch requests for Scenario 1 (Q&A with reasoning trace)"""
-        requests = []
+    def _generate_scenario1_jsonl(self, slices: List[Dict[str, Any]]) -> str:
+        """Generate JSONL for scenario 1 (functions with reasoning trace requirements)"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = self.output_dir / f"scenario1_batch_input_{timestamp}.jsonl"
 
-        for slice_data in slices:
-            custom_id = f"scenario1_{slice_data['id']}"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for slice_data in slices:
+                jsonl_item = self._create_scenario1_item(slice_data)
+                f.write(json.dumps(jsonl_item, ensure_ascii=False) + '\n')
 
-            # Create prompt for Q&A generation with reasoning trace
-            prompt = self._build_scenario1_prompt(slice_data)
+        logger.info(f"Generated {len(slices)} scenario 1 items")
+        return str(output_file)
 
-            request = BatchRequest(
-                custom_id=custom_id,
-                method="POST",
-                url="/v1/chat/completions",
-                body={
-                    "model": "gpt-4o-mini",  # Default model
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a senior software architect helping to create training data for code understanding. Generate question-answer pairs with detailed reasoning traces."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "max_tokens": 2000,
-                    "temperature": 0.7
-                }
-            )
-            requests.append(request)
+    def _generate_scenario2_jsonl(self, slices: List[Dict[str, Any]]) -> str:
+        """Generate JSONL for scenario 2 (classes with design reasoning requirements)"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = self.output_dir / f"scenario2_batch_input_{timestamp}.jsonl"
 
-        return requests
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for slice_data in slices:
+                jsonl_item = self._create_scenario2_item(slice_data)
+                f.write(json.dumps(jsonl_item, ensure_ascii=False) + '\n')
 
-    def _create_scenario2_requests(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
-        """Create batch requests for Scenario 2 (Design solutions with reasoning)"""
-        requests = []
+        logger.info(f"Generated {len(slices)} scenario 2 items")
+        return str(output_file)
 
-        for slice_data in slices:
-            custom_id = f"scenario2_{slice_data['id']}"
-
-            # Create prompt for design solution generation
-            prompt = self._build_scenario2_prompt(slice_data)
-
-            request = BatchRequest(
-                custom_id=custom_id,
-                method="POST",
-                url="/v1/chat/completions",
-                body={
-                    "model": "gpt-4o-mini",  # Default model
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a senior software architect helping to create training data for system design. Generate design solutions with detailed reasoning and decision traces."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "max_tokens": 2000,
-                    "temperature": 0.7
-                }
-            )
-            requests.append(request)
-
-        return requests
-
-    def _build_scenario1_prompt(self, slice_data: Dict[str, Any]) -> str:
-        """Build prompt for Scenario 1 / 构建场景1的提示"""
+    def _create_scenario1_item(self, slice_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create JSONL item for scenario 1 with reasoning trace requirement"""
         code_snippet = slice_data['code_snippet']
         file_path = slice_data['file_path']
         name = slice_data['name']
         context = slice_data.get('context', {})
+        complexity = slice_data['complexity']
 
-        prompt = f"""Analyze the following code from {file_path}:
+        # Build prompt requiring reasoning trace
+        prompt = self._build_scenario1_prompt(code_snippet, file_path, name, context, complexity)
 
+        return {
+            "custom_id": f"scenario1_{slice_data['id']}",
+            "method": "POST",
+            "url": "/v1/chat/completions",
+            "body": {
+                "model": "gpt-5-nano-20250807",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a senior software architect creating training data. Generate detailed reasoning traces for code analysis."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "max_tokens": 2000,
+                "temperature": 0.7
+            }
+        }
+
+    def _create_scenario2_item(self, slice_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create JSONL item for scenario 2 with design reasoning requirement"""
+        # Select random requirement
+        requirement = random.choice(self.scenario2_requirements)
+
+        # Build architecture skeleton
+        skeleton = self._build_architecture_skeleton(slice_data)
+
+        # Build prompt requiring design reasoning
+        prompt = self._build_scenario2_prompt(skeleton, requirement)
+
+        return {
+            "custom_id": f"scenario2_{slice_data['id']}",
+            "method": "POST",
+            "url": "/v1/chat/completions",
+            "body": {
+                "model": "gpt-5-nano-20250807",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a senior software architect creating training data. Generate detailed reasoning traces for system design."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "max_tokens": 2000,
+                "temperature": 0.7
+            }
+        }
+
+    def _build_scenario1_prompt(self, code_snippet: str, file_path: str, name: str,
+                               context: Dict[str, Any], complexity: str) -> str:
+        """Build prompt for scenario 1 requiring reasoning trace"""
+        # Determine focus based on complexity
+        if complexity == 'simple':
+            focus = "这段代码的基本功能和工作原理"
+        elif complexity == 'medium':
+            focus = "这段代码的核心业务逻辑和设计思路"
+        else:
+            focus = "这段代码最复杂的部分及其优化空间"
+
+        return f"""Analyze this Python function and generate a training sample with reasoning trace.
+
+Function: {file_path}::{name}
+Complexity: {complexity}
+Docstring: {context.get('docstring', 'None')}
+
+Code:
 ```python
 {code_snippet}
 ```
 
-Context:
-- Name: {name}
-- Type: {slice_data['type']}
-- Complexity: {slice_data['complexity']}
-- Docstring: {context.get('docstring', 'None')}
-
-Please generate a Q&A pair about this code with the following structure in JSON format:
-
+Generate a JSON training sample:
 {{
-  "question": "A technical question about this code (what it does, how it works, or why it's designed this way)",
-  "answer": "A detailed answer explaining the code",
+  "question": "A specific technical question about {focus}",
+  "answer": "Detailed explanation of the code",
   "reasoning_trace": {{
     "steps": [
       {{
         "step_number": 1,
-        "description": "What analysis was done",
-        "code_reference": "Specific code element referenced",
-        "reasoning": "Why this step is important"
+        "description": "Analysis step description",
+        "code_reference": "Specific code element",
+        "reasoning": "Why this step matters"
       }}
     ],
     "conclusion": "Final understanding"
   }},
-  "business_rules": ["List of business rules extracted from the code"]
+  "business_rules": ["Extracted business rules"]
 }}
 
-Generate the response in valid JSON format only."""
+Return only valid JSON."""
 
-        return prompt
-
-    def _build_scenario2_prompt(self, slice_data: Dict[str, Any]) -> str:
-        """Build prompt for Scenario 2 / 构建场景2的提示"""
-        code_snippet = slice_data['code_snippet']
+    def _build_architecture_skeleton(self, slice_data: Dict[str, Any]) -> str:
+        """Build architecture skeleton from class data"""
         file_path = slice_data['file_path']
         name = slice_data['name']
+        context = slice_data.get('context', {})
 
-        prompt = f"""Analyze the following code pattern from {file_path}:
+        skeleton = f"""Class: {name}
+File: {file_path}
+Docstring: {context.get('docstring', 'None')}
+Base classes: {', '.join(context.get('base_classes', []))}
 
-```python
-{code_snippet}
-```
+Methods:
+"""
 
-This code demonstrates a specific architectural pattern or design approach.
+        for method in context.get('methods', []):
+            if isinstance(method, dict):
+                skeleton += f"- {method.get('name', 'unknown')}()\n"
+            else:
+                skeleton += f"- {method}()\n"
 
-Please generate a design solution that someone might implement based on this pattern:
+        return skeleton
 
+    def _build_scenario2_prompt(self, skeleton: str, requirement: Dict[str, Any]) -> str:
+        """Build prompt for scenario 2 requiring design reasoning"""
+        return f"""Design a solution for this requirement using the existing class architecture.
+
+Existing Architecture:
+{skeleton}
+
+Requirement:
+Title: {requirement['title']}
+Description: {requirement['description']}
+Constraints: {', '.join(requirement['constraints'])}
+
+Generate a JSON design solution:
 {{
-  "requirement": {{
-    "title": "A feature that could use this pattern",
-    "description": "Detailed description",
-    "constraints": ["List of constraints"]
+  "requirement_analysis": {{
+    "title": "{requirement['title']}",
+    "description": "{requirement['description']}",
+    "constraints": {requirement['constraints']}
   }},
   "design_solution": {{
     "overview": "High-level design approach",
     "architecture": {{
-      "style": "Architecture style",
-      "components": ["List of components"],
-      "data_flow": "How data flows"
+      "components": ["New components to add"],
+      "integration_points": ["Integration points"],
+      "data_flow": "Data flow description"
     }},
-    "implementation_plan": ["Step-by-step implementation"]
+    "implementation_plan": ["Implementation steps"]
   }},
   "reasoning_trace": {{
-    "decision_points": [
+    "analysis_steps": [
       {{
-        "decision": "Key decision made",
-        "rationale": "Why this decision",
-        "alternatives_considered": ["Other options"],
-        "chosen_solution": "Why this was chosen"
+        "step": 1,
+        "existing_pattern_analysis": "How existing patterns inform design",
+        "requirement_mapping": "How requirements map to architecture",
+        "decision_factors": "Key decision factors"
       }}
-    ]
+    ],
+    "design_rationale": "Why this design approach"
   }}
 }}
 
-Generate the response in valid JSON format only."""
-
-        return prompt
-
-    def _export_batch_requests(self, requests: List[BatchRequest],
-                              scenario: str, output_file: Optional[str] = None) -> str:
-        """
-        Export batch requests to JSONL file for batch API
-        导出批处理请求到JSONL文件
-        """
-        if not output_file:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = self.output_dir / f"{scenario}_batch_input_{timestamp}.jsonl"
-        else:
-            output_file = Path(output_file)
-
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for req in requests:
-                batch_item = {
-                    "custom_id": req.custom_id,
-                    "method": req.method,
-                    "url": req.url,
-                    "body": req.body
-                }
-                json_line = json.dumps(batch_item, ensure_ascii=False)
-                f.write(json_line + '\n')
-
-        logger.info(f"Exported {len(requests)} batch requests to {output_file}")
-        return str(output_file)
+Return only valid JSON."""
 
 
 def main():
     """Command line interface / 命令行接口"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Convert reviewed slices to batch input")
+    parser = argparse.ArgumentParser(description="Generate batch input JSONL from reviewed slices")
     parser.add_argument("--reviewed-dir", "-r", default="data/2.reviewed_slices",
                        help="Directory containing reviewed slice JSONL files")
     parser.add_argument("--output-dir", "-o", default="data/3.batch_input",
                        help="Output directory for batch input files")
     parser.add_argument("--max-scenario1", "-s1", type=int, default=100,
-                       help="Maximum items for scenario 1")
+                       help="Maximum items for scenario 1 (functions for QA)")
     parser.add_argument("--max-scenario2", "-s2", type=int, default=50,
-                       help="Maximum items for scenario 2")
+                       help="Maximum items for scenario 2 (classes for design)")
 
     args = parser.parse_args()
 
@@ -307,10 +338,62 @@ def main():
     )
 
     # Print results
-    print("Processing complete!")
+    print("Batch input JSONL generation complete!")
     for scenario, file_path in results.items():
         print(f"  {scenario}: {file_path}")
+    print("\nNext: Use batch_submitter.py to submit to OpenAI")
 
 
 if __name__ == "__main__":
     main()
+
+
+# =============================================================================
+# 调用示例 / Usage Examples
+# =============================================================================
+
+"""
+# 1. 基本用法 - 从审核切片生成批处理输入JSONL / Basic Usage - Generate Batch Input JSONL
+python src/pipeline/scenario_processor.py
+
+# 2. 指定目录 - Specify directories
+python src/pipeline/scenario_processor.py \
+  --reviewed-dir data/2.reviewed_slices \
+  --output-dir data/3.batch_input
+
+# 3. 控制数据量 - Control data volume
+python src/pipeline/scenario_processor.py \
+  --max-scenario1 200 \
+  --max-scenario2 100
+
+# 4. Python API 调用 / Python API Usage
+from src.pipeline.scenario_processor import ScenarioProcessor
+
+processor = ScenarioProcessor()
+results = processor.process_reviewed_slices(
+    reviewed_slices_dir="data/2.reviewed_slices",
+    max_scenario1=50,
+    max_scenario2=25
+)
+print("Generated JSONL files:", results)
+
+# 输出文件 / Output files:
+# data/3.batch_input/scenario1_batch_input_YYYYMMDD_HHMMSS.jsonl
+# data/3.batch_input/scenario2_batch_input_YYYYMMDD_HHMMSS.jsonl
+"""
+
+# D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_fastapi_light/ --output-dir ./data/3.batch_input/repo_fastapi_light/   
+
+# =============================================================================
+# 场景区分 / Scenario Differentiation
+# =============================================================================
+
+"""
+场景1 (QA): 函数 + 推理轨迹需求
+- 输入: 函数完整代码片段 + 上下文
+- 让OpenAI生成: 技术问题 + 解答 + 推理步骤 + 业务规则
+
+场景2 (Design): 类架构 + 设计需求
+- 输入: 类结构骨架 + 随机业务需求
+- 让OpenAI生成: 需求分析 + 设计方案 + 推理轨迹 + 实现计划
+"""

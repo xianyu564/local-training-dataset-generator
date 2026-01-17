@@ -224,10 +224,9 @@ config.json
 
 # Generated data (keep tracked versions but ignore intermediate)
 code_slices.jsonl
-scenario1_batch_input.jsonl
-scenario2_batch_input.jsonl
-scenario1_responses.jsonl
-scenario2_responses.jsonl
+*_batch_input_*.jsonl
+*_responses_*.jsonl
+*_training_data_*.jsonl
 training_dataset.jsonl
 dataset_statistics.json
 review_summary.md

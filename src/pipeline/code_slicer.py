@@ -308,3 +308,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# D:\Code\Python\python.exe src/pipeline/code_slicer.py .\data\0.cloned_repo\repo_ecommerce_medium\
+# D:\Code\Python\python.exe src/pipeline/code_slicer.py .\data\0.cloned_repo\repo_iot_special\
+# D:\Code\Python\python.exe src/pipeline/code_slicer.py .\data\0.cloned_repo\repo_fastapi_light\
