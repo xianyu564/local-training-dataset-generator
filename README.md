@@ -366,9 +366,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Documentation / 文档
 
-- [Design Document (DESIGN.md)](DESIGN.md) - Comprehensive system design
-- [Examples](examples/) - Usage examples
-- API documentation - Coming soon
+- **[Quick Start Guide (QUICKSTART.md)](QUICKSTART.md)** - Fast reference for common tasks
+- **[Pipeline Workflow (PIPELINE.md)](PIPELINE.md)** - Detailed pipeline guide
+- **[Design Document (DESIGN.md)](DESIGN.md)** - Comprehensive system design
+- **[Examples](examples/)** - Usage examples
 
 ## Evaluation Criteria / 评估标准
 
