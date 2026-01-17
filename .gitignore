@@ -228,6 +228,7 @@ code_slices.jsonl
 *_responses_*.jsonl
 batch_*_output.jsonl
 scenario*_output.jsonl
+scenario_processed_*.jsonl
 
 *_training_data_*.jsonl
 training_dataset.jsonl
