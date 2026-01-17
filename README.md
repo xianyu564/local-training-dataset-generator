@@ -9,12 +9,26 @@
 
 ## Overview / 概述
 
+**NEW: Production-Ready Pipeline Architecture** 🎉  
+This system now features a **multi-stage pipeline** with manual review checkpoints and GPT Batch API integration for production use!
+
+**新功能：生产就绪的流水线架构** 🎉  
+系统现在具有**多阶段流水线**，包含人工审核检查点和GPT批处理API集成，可用于生产环境！
+
 This system automates the generation and processing of training data to support proprietary model training based on local code repositories. It provides comprehensive support for two key scenarios with bilingual (Chinese/English) output.
 
 本系统自动化生成和处理训练数据，以支持基于本地代码仓的专有模型训练。系统为两个关键场景提供全面支持，并支持双语（中文/英文）输出。
 
 ### Key Features / 核心特性
 
+**Pipeline Features** / **流水线特性**:
+- 🔄 **Multi-Stage Pipeline** - 5 stages with manual review checkpoints
+- 🤖 **GPT Batch API Support** - Cost-efficient batch processing (50% savings)
+- 📋 **JSONL Format** - Standard format for LLM fine-tuning
+- ✅ **Quality Control** - Manual review at critical stages
+- 📊 **Comprehensive Statistics** - Track quality and diversity
+
+**Generation Features** / **生成特性**:
 - 🤖 **Automated Q&A Generation** - Extracts business logic and generates question-answer pairs with code context and reasoning traces
 - 🏗️ **Design Solution Generation** - Creates architecture-based design solutions with detailed reasoning
 - 🌐 **Bilingual Support** - Full Chinese and English language support
