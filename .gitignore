@@ -242,7 +242,7 @@ src/fine-tune/data/*
 !src/fine-tune/data/test_mapping.md
 
 
-data/6.fine_tune_qwen/
+data/6.fine_tune_qwen/*
 !data/6.fine_tune_qwen/test_results.txt
 !data/6.fine_tune_qwen/adapter_config.json
 !data/6.fine_tune_qwen/adapter_model.safetensors
