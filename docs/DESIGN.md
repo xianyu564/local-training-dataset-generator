@@ -1,422 +1,87 @@
-# Training Dataset Generation System Design Document
-# 训练数据集生成系统设计文档
+# 系统设计文档 (Design Document)
 
-## 1. Overview / 概述
+## 1. 设计哲学 / Design Philosophy
 
-### 1.1 Purpose / 目的
-This system automates the generation and processing of training data for proprietary model training based on local code repositories. It supports two primary scenarios for generating high-quality training datasets.
+本方案的核心设计方法是“基于上下文的推理增强”。我们认为，高质量的代码数据集不应仅仅包含“代码-描述”对，而应包含从代码分析到结论的完整思考链条。
+The core design philosophy of this project is "Context-Based Reasoning Enhancement." We believe high-quality code datasets should not just contain "code-description" pairs, but a complete chain of thought from code analysis to conclusion.
 
-本系统自动化生成和处理训练数据，以支持基于本地代码仓的专有模型训练。系统支持两个主要场景的高质量训练数据集生成。
+## 2. 核心架构与关键代码 / Core Architecture & Key Code
 
-### 1.2 Key Features / 核心特性
-- **Automated Q&A Generation**: Extracts business logic and generates Q&A pairs with code context
-- **Design Solution Generation**: Creates architecture-based design solutions with reasoning traces
-- **Bilingual Support**: Full Chinese and English language support
-- **Quality Assurance**: Built-in validation and quality checks
-- **Extensible Architecture**: Modular design for future enhancements
+### Stage 1: 结构化切片 (Code Slicing) / Stage 1: Code Slicing
+利用 Python `ast` 模块进行静态分析，将庞大的仓库拆解为具有独立语义的切片。
+Use the Python `ast` module for static analysis, decomposing large repositories into independent semantic slices.
 
----
+*   关键代码 / Key Code: `src/pipeline/code_slicer.py` 中的 `SimpleCodeAnalyzer`。
+*   复杂度评估 / Complexity Assessment: 采用启发式算法（分支语句计数）来区分简单、中等和复杂函数。
+    Uses a heuristic algorithm (branch statement counting) to distinguish simple, medium, and complex functions.
+```python
+# 复杂度计算示例 / Complexity Calculation Example
+def _calculate_complexity(self, node: ast.FunctionDef) -> str:
+    score = 1
+    for child in ast.walk(node):
+        if isinstance(child, (ast.If, ast.For, ast.While, ast.Try)):
+            score += 1
+    return "simple" if score <= 3 else "medium" if score <= 7 else "complex"
+```
 
-## 2. Dataset Structure / 数据集结构
+### Stage 2: 场景化 Prompts (Scenario Processing) / Stage 2: Scenario Processing
+根据切片类型（函数/类）和复杂度，动态生成不同维度的 Prompt。
+Dynamically generate Prompts of different dimensions based on slice type (function/class) and complexity.
 
-### 2.1 Scenario 1: Q&A Pair Dataset / 场景1: 问答对数据集
+*   场景 1 (QA) / Scenario 1: 侧重于函数的具体实现逻辑。 Focuses on specific function implementation logic.
+*   场景 2 (Design) / Scenario 2: 提供类架构骨架，要求 LLM 在现有设计模式下完成新需求设计。
+    Provides class architecture skeletons, requiring the LLM to design new requirements within existing design patterns.
+*   关键代码 / Key Code: `src/pipeline/scenario_processor.py` 中的 `_build_scenario1_prompt`.
 
-#### Data Schema / 数据模式
+### Stage 3: 大规模异步处理 (Batch API) / Stage 3: Batch API Processing
+利用 OpenAI Batch API 实现成本降低 50% 且支持超大规模并发的处理。
+Leverage OpenAI Batch API for 50% cost reduction and support for ultra-large-scale concurrent processing.
+
+*   关键逻辑 / Key Logic: `BatchSubmitter` 封装了文件上传 (`files.create`)、批处理创建 (`batches.create`) 和状态轮询。
+    `BatchSubmitter` encapsulates file upload, batch creation, and status polling.
+
+### Stage 4: 逻辑提取与统计 (Dataset Compilation) / Stage 4: Dataset Compilation
+这是流水线的收官阶段，负责从 LLM 的 Raw Response 中提取嵌套的 JSON，并转化为最终的微调格式。
+The final stage of the pipeline, responsible for extracting nested JSON from LLM raw responses and converting it into the final fine-tuning format.
+
+*   关键代码 / Key Code: `src/pipeline/dataset_compiler.py` 中的 `_get_parsed_content`.
+*   Qwen 格式转化 / Qwen Format Conversion: 将推理步骤包裹在 `<thought>` 标签内。
+    Wraps reasoning steps within `<thought>` tags.
+
+## 3. 数据流示例结构 / Data Flow Example Structure
+
+### 1. 原始切片 / Original Slice (Stage 1)
 ```json
 {
-  "id": "unique_identifier",
-  "type": "qa_pair",
-  "language": "en|zh",
-  "question": "The question text",
-  "answer": "The answer text",
-  "code_context": {
-    "file_path": "path/to/file.py",
-    "function_name": "function_name",
-    "class_name": "class_name (optional)",
-    "code_snippet": "relevant code snippet",
-    "start_line": 10,
-    "end_line": 25
-  },
-  "business_rules": [
-    "extracted business rule 1",
-    "extracted business rule 2"
-  ],
-  "reasoning_trace": {
-    "steps": [
-      {
-        "step_number": 1,
-        "description": "Analysis step description",
-        "code_reference": "specific code element",
-        "reasoning": "explanation of the logic"
-      }
-    ],
-    "conclusion": "final reasoning conclusion"
-  },
-  "metadata": {
-    "repository": "owner/repo_name",
-    "generated_at": "timestamp",
-    "complexity": "simple|medium|complex",
-    "tags": ["tag1", "tag2"]
-  }
+  "id": "repo_001_func",
+  "type": "function",
+  "code_snippet": "def add(a, b): return a + b",
+  "complexity": "simple",
+  "context": {"docstring": "Add two numbers"}
 }
 ```
 
-#### Q&A Types / 问答类型
-1. **Code Understanding / 代码理解**: Questions about what code does
-2. **Business Logic / 业务逻辑**: Questions about business rules and workflows
-3. **Design Patterns / 设计模式**: Questions about architectural patterns used
-4. **API Usage / API使用**: Questions about how to use specific APIs
-5. **Error Handling / 错误处理**: Questions about error scenarios
-
-### 2.2 Scenario 2: Design Solution Dataset / 场景2: 设计方案数据集
-
-#### Data Schema / 数据模式
+### 2. 最终训练样本 / Final Training Sample (Stage 4)
 ```json
 {
-  "id": "unique_identifier",
-  "type": "design_solution",
-  "language": "en|zh",
-  "requirement": {
-    "title": "Requirement title",
-    "description": "Detailed requirement description",
-    "constraints": ["constraint1", "constraint2"],
-    "functional_requirements": ["req1", "req2"],
-    "non_functional_requirements": ["nfr1", "nfr2"]
-  },
-  "design_solution": {
-    "overview": "High-level design overview",
-    "architecture": {
-      "style": "microservices|monolithic|layered|etc",
-      "components": [
-        {
-          "name": "component_name",
-          "responsibility": "what it does",
-          "interfaces": ["interface1", "interface2"],
-          "dependencies": ["dep1", "dep2"]
-        }
-      ],
-      "data_flow": "description of data flow",
-      "technology_stack": {
-        "languages": ["Python", "JavaScript"],
-        "frameworks": ["Flask", "React"],
-        "databases": ["PostgreSQL"],
-        "infrastructure": ["Docker", "Kubernetes"]
-      }
-    },
-    "implementation_plan": [
-      {
-        "phase": 1,
-        "description": "Phase description",
-        "tasks": ["task1", "task2"],
-        "estimated_effort": "time estimate"
-      }
-    ]
-  },
-  "code_references": {
-    "similar_patterns": [
-      {
-        "file_path": "path/to/similar/code.py",
-        "pattern_name": "pattern name",
-        "code_snippet": "relevant code",
-        "explanation": "why this is relevant"
-      }
-    ],
-    "reusable_components": ["component1", "component2"]
-  },
-  "reasoning_trace": {
-    "decision_points": [
-      {
-        "decision": "Key architectural decision",
-        "rationale": "Why this decision was made",
-        "alternatives_considered": [
-          {
-            "option": "alternative option",
-            "pros": ["pro1", "pro2"],
-            "cons": ["con1", "con2"],
-            "rejection_reason": "why rejected"
-          }
-        ],
-        "chosen_solution": {
-          "description": "chosen approach",
-          "justification": "detailed justification",
-          "trade_offs": ["tradeoff1", "tradeoff2"]
-        }
-      }
-    ],
-    "architecture_evolution": [
-      {
-        "stage": "evolution stage",
-        "rationale": "why this evolution"
-      }
-    ]
-  },
-  "metadata": {
-    "repository": "owner/repo_name",
-    "generated_at": "timestamp",
-    "complexity": "simple|medium|complex",
-    "domain": "web|mobile|backend|data|etc",
-    "tags": ["tag1", "tag2"]
-  }
+  "instruction": "分析以下代码片段...",
+  "input": "代码内容:\ndef add(a, b): return a + b",
+  "output": "<thought>\nStep 1: 识别函数参数 a 和 b。\nStep 2: 识别返回操作为加法。\nConclusion: 这是一个基础的加法辅助函数。\n</thought>\n\n初级开发者提问：这个函数有什么用？\n资深专家解答：该函数用于计算两个数的和..."
 }
 ```
 
----
+## 4. 统计指标 / Statistical Metrics
 
-## 3. System Architecture / 系统架构
+系统通过 `DatasetCompiler` 自动计算 / Automatically calculated via `DatasetCompiler`:
+*   Avg Reasoning Steps: `total_steps / successful_items`，反映数据集的逻辑深度。 Reflects the logical depth of the dataset.
+*   Parse Success Rate: 衡量 LLM 遵循 JSON 输出格式的质量。 Measures the quality of LLM adherence to JSON output format.
 
-### 3.1 Component Overview / 组件概览
-
+## 5. 目录与分层 / Directory & Layering
+```text
+data/
+├── 0.cloned_repo/   # 原始代码 (Input) / Original Code
+├── 1.slices/        # 静态分析产物 / Static Analysis Artifacts
+├── 3.batch_input/   # LLM 任务清单 / LLM Task List
+├── 4.batch_output/  # LLM 原始回执 (Async) / Raw LLM Responses
+└── 5.final_output/  # 最终训练数据集 (Output) / Final Training Dataset
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Input Layer / 输入层                    │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Git Repository Clone │  │  Configuration Manager   │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────┐
-│              Analysis Layer / 分析层                      │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │   Code Parser        │  │  AST Analyzer            │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Business Logic       │  │  Pattern Detector        │ │
-│  │ Extractor            │  │                          │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────┐
-│           Generation Layer / 生成层                       │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Q&A Generator        │  │  Design Solution         │ │
-│  │ (Scenario 1)         │  │  Generator (Scenario 2)  │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Reasoning Trace      │  │  Bilingual Translator    │ │
-│  │ Generator            │  │                          │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────┐
-│          Quality Assurance Layer / 质量保证层             │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Diversity Checker    │  │  Validation Engine       │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────┐
-│              Output Layer / 输出层                        │
-│  ┌──────────────────────┐  ┌──────────────────────────┐ │
-│  │ Dataset Formatter    │  │  Export Manager          │ │
-│  └──────────────────────┘  └──────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 3.2 Key Components / 关键组件
-
-#### 3.2.1 Code Repository Analyzer / 代码仓库分析器
-- **Purpose**: Parse and analyze code repositories
-- **Functions**:
-  - Clone and navigate repositories
-  - Extract code structure (classes, functions, modules)
-  - Identify dependencies and relationships
-  - Detect design patterns
-
-#### 3.2.2 Q&A Generator / 问答生成器
-- **Purpose**: Generate question-answer pairs from code
-- **Strategy**:
-  - Function-level analysis for simple Q&A
-  - Class-level analysis for design Q&A
-  - Module-level analysis for architecture Q&A
-  - Cross-file analysis for workflow Q&A
-
-#### 3.2.3 Design Solution Generator / 设计方案生成器
-- **Purpose**: Create design solutions based on requirements
-- **Strategy**:
-  - Analyze existing architecture patterns
-  - Match requirements to similar implementations
-  - Generate component diagrams
-  - Provide reasoning traces for decisions
-
-#### 3.2.4 Reasoning Trace Generator / 推理轨迹生成器
-- **Purpose**: Generate step-by-step reasoning processes
-- **Functions**:
-  - Trace code execution flow
-  - Document decision points
-  - Explain architectural choices
-  - Link code to business logic
-
----
-
-## 4. Data Diversity and Quality / 数据多样性和质量
-
-### 4.1 Diversity Mechanisms / 多样性机制
-
-#### 4.1.1 Code Coverage Diversity / 代码覆盖多样性
-- Sample from different modules and packages
-- Include various complexity levels (simple, medium, complex)
-- Cover different programming paradigms (OOP, functional, procedural)
-
-#### 4.1.2 Question Type Diversity / 问题类型多样性
-- Mix of "what", "how", "why" questions
-- Different abstraction levels (implementation, design, architecture)
-- Various domains (API, business logic, data processing, UI)
-
-#### 4.1.3 Language Diversity / 语言多样性
-- Generate parallel Chinese and English versions
-- Context-aware translation for technical terms
-- Cultural adaptation for examples
-
-### 4.2 Quality Assurance / 质量保证
-
-#### 4.2.1 Validation Rules / 验证规则
-- **Completeness**: All required fields are present
-- **Consistency**: Code snippets match file paths
-- **Accuracy**: Line numbers are correct
-- **Relevance**: Answer addresses the question
-- **Clarity**: Reasoning traces are logical
-
-#### 4.2.2 Quality Metrics / 质量指标
-- **Code Context Relevance**: Measure relevance of code snippet to Q&A
-- **Reasoning Depth**: Number of reasoning steps and detail level
-- **Answer Completeness**: Coverage of question aspects
-- **Technical Accuracy**: Correctness of technical details
-
----
-
-## 5. Metadata and Context / 元数据和上下文
-
-### 5.1 Code Context Metadata / 代码上下文元数据
-- File path and location in repository
-- Function/class/module names
-- Dependencies and imports
-- Related design patterns
-- Code complexity metrics
-
-### 5.2 Business Rules Metadata / 业务规则元数据
-- Extracted business constraints
-- Validation logic
-- Workflow steps
-- Domain-specific terminology
-
-### 5.3 Repository Metadata / 仓库元数据
-- Repository URL and version
-- Programming language
-- Framework and libraries used
-- Project domain and type
-
----
-
-## 6. Extensibility / 可扩展性
-
-### 6.1 Plugin Architecture / 插件架构
-The system supports plugins for:
-- New programming languages
-- Additional analysis techniques
-- Custom Q&A generation strategies
-- Domain-specific processors
-
-### 6.2 Configuration / 配置
-```yaml
-# config.yaml
-analysis:
-  languages: ["python", "javascript", "java"]
-  max_depth: 3
-  include_tests: false
-
-generation:
-  qa_pairs_per_file: 5
-  min_complexity: "simple"
-  include_reasoning: true
-  
-quality:
-  min_code_lines: 5
-  max_code_lines: 50
-  diversity_threshold: 0.7
-
-output:
-  format: "json"
-  bilingual: true
-  split_train_test: true
-  test_ratio: 0.2
-```
-
-### 6.3 Future Enhancements / 未来增强
-- LLM integration for enhanced generation
-- Interactive refinement of generated data
-- Automatic model training pipeline integration
-- Multi-repository analysis
-- Version control awareness
-- Incremental updates
-
----
-
-## 7. Usage Workflow / 使用流程
-
-### 7.1 Scenario 1 Workflow / 场景1工作流
-```
-1. Clone target repository
-2. Analyze code structure
-3. Extract business logic and patterns
-4. Generate Q&A pairs with code context
-5. Create reasoning traces
-6. Validate and ensure diversity
-7. Export bilingual dataset
-```
-
-### 7.2 Scenario 2 Workflow / 场景2工作流
-```
-1. Load requirements specification
-2. Analyze existing repository architecture
-3. Identify similar patterns and components
-4. Generate design solution
-5. Create reasoning traces for decisions
-6. Link to relevant code examples
-7. Validate and export
-```
-
----
-
-## 8. Example Use Cases / 示例用例
-
-### 8.1 Example 1: Flask API Q&A / Flask API问答
-**Repository**: flask/flask  
-**Generated Q&A**:
-- Q: "How does Flask handle routing?"
-- A: "Flask uses the @app.route() decorator..."
-- Code Context: app.py lines 50-75
-- Reasoning Trace: [routing decorator -> url_map -> dispatch]
-
-### 8.2 Example 2: Microservices Design / 微服务设计
-**Requirement**: "Design a scalable e-commerce system"  
-**Repository**: Similar e-commerce projects  
-**Generated Solution**: Microservices architecture with...
-- Reasoning Trace: [monolithic rejected -> microservices chosen -> service boundaries defined]
-
----
-
-## 9. Evaluation Criteria / 评估标准
-
-### 9.1 Dataset Coverage / 数据集覆盖度
-- ✓ Both scenarios implemented
-- ✓ All metadata fields populated
-- ✓ Diverse code examples
-- ✓ Multiple complexity levels
-
-### 9.2 Quality Metrics / 质量指标
-- ✓ Logical reasoning traces
-- ✓ Accurate code references
-- ✓ Complete Q&A pairs
-- ✓ Valid design solutions
-
-### 9.3 System Completeness / 系统完整性
-- ✓ All components implemented
-- ✓ Extensible architecture
-- ✓ Configuration support
-- ✓ Error handling
-
-### 9.4 Innovation / 创新性
-- ✓ Automated reasoning trace generation
-- ✓ Bilingual support
-- ✓ Context-aware generation
-- ✓ Quality assurance mechanisms

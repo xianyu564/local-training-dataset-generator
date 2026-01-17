@@ -1,411 +1,68 @@
 # Local Training Dataset Generator
-# 本地训练数据集生成器
-
-🚀 Automated training dataset generation system for code repositories  
-🚀 代码仓库自动化训练数据集生成系统
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Overview / 概述
+本项目是一个自动化的代码仓库训练数据集生成器。它能够深入分析本地代码库，并利用 LLM (如 OpenAI GPT) 自动生成高质量、带推理轨迹 (Reasoning Traces) 的微调数据集。
 
-**NEW: Production-Ready Pipeline Architecture** 🎉  
-This system now features a **multi-stage pipeline** with manual review checkpoints and GPT Batch API integration for production use!
+This project is an automated training dataset generator for code repositories. It performs deep analysis of local codebases and leverages LLMs (e.g., OpenAI GPT) to generate high-quality fine-tuning datasets with Reasoning Traces.
 
-**新功能：生产就绪的流水线架构** 🎉  
-系统现在具有**多阶段流水线**，包含人工审核检查点和GPT批处理API集成，可用于生产环境！
+## 🎯 我们的想法 / The Idea
 
-This system automates the generation and processing of training data to support proprietary model training based on local code repositories. It provides comprehensive support for two key scenarios with bilingual (Chinese/English) output.
+现有的代码数据集通常缺乏深度。本项目的核心理念是：
+Existing code datasets often lack depth. The core philosophy of this project is:
 
-本系统自动化生成和处理训练数据，以支持基于本地代码仓的专有模型训练。系统为两个关键场景提供全面支持，并支持双语（中文/英文）输出。
+1.  **从源码提取上下文 / Context Extraction**: 不仅仅是代码片段，还包括类结构、函数关系和复杂度。
+    Not just code snippets, but also class structures, function relationships, and complexity.
+2.  **生成推理轨迹 / Reasoning Traces**: 让模型学习“如何思考”代码，而不是死记硬背。
+    Enabling models to learn "how to think" about code, rather than rote memorization.
+3.  **多场景覆盖 / Multi-Scenario Coverage**:
+    *   **场景 1 (QA) / Scenario 1**: 针对具体函数，生成资深开发者级别的问答与逻辑推理。
+        For specific functions, generating senior developer-level Q&A and logical reasoning.
+    *   **场景 2 (Design) / Scenario 2**: 针对类架构，根据新需求生成技术方案与设计决策。
+        For class architectures, generating technical solutions and design decisions based on new requirements.
 
-### Key Features / 核心特性
+## 🚀 核心工作流 / The Workflow
 
-**Pipeline Features** / **流水线特性**:
-- 🔄 **Multi-Stage Pipeline** - 5 stages with manual review checkpoints
-- 🤖 **GPT Batch API Support** - Cost-efficient batch processing (50% savings)
-- 📋 **JSONL Format** - Standard format for LLM fine-tuning
-- ✅ **Quality Control** - Manual review at critical stages
-- 📊 **Comprehensive Statistics** - Track quality and diversity
+系统采用模块化的流水线架构：
+The system adopts a modular pipeline architecture:
 
-**Generation Features** / **生成特性**:
-- 🤖 **Automated Q&A Generation** - Extracts business logic and generates question-answer pairs with code context and reasoning traces
-- 🏗️ **Design Solution Generation** - Creates architecture-based design solutions with detailed reasoning
-- 🌐 **Bilingual Support** - Full Chinese and English language support
-- 📊 **Quality Assurance** - Built-in validation and diversity checking
-- 🔧 **Extensible Architecture** - Modular design for easy customization
-- 📈 **Rich Metadata** - Comprehensive context including code snippets, business rules, and complexity metrics
+1.  **代码切片 (Slicing)**: 分析 `data/0.cloned_repo` 中的源码，生成结构化的代码片段。
+    Analyze source code in `data/0.cloned_repo` to generate structured code slices.
+2.  **场景处理 (Processing)**: 将切片转化为 LLM 请求任务。
+    Transform slices into LLM request tasks.
+3.  **批处理提交 (Submission)**: 利用 OpenAI Batch API 进行低成本大规模生成。
+    Leverage OpenAI Batch API for cost-efficient large-scale generation.
+4.  **数据集编译 (Compilation)**: 将 LLM 返回的结果重新组合成最终的训练数据集 (JSONL)。
+    Recombine LLM responses into the final training dataset (JSONL).
 
-## Scenarios / 场景
+## 📦 示例仓库 / Example Repositories
 
-### Scenario 1: Q&A Pair Generation / 场景1：问答对生成
+为了确保生成数据的多样性与代表性，我们选择了三个示例库。详细的处理数量与抽样策略请参考 [处理记录](docs/RECORDS.md)。
+We selected three example repositories to ensure data diversity. For detailed processing counts and sampling strategies, please refer to the [Processing Records](docs/RECORDS.md).
 
-Automatically generates question-answer pairs from code repositories with:
-- Code context (file path, line numbers, code snippets)
-- Business rules extraction
-- Step-by-step reasoning traces
-- Multiple complexity levels
+*   [**repo_fastapi_light**](https://github.com/nsidnev/fastapi-realworld-example-app.git): 轻量级仓库，用于快速验证流程。 (Lightweight for fast verification)
+*   [**repo_ecommerce_medium**](https://github.com/saleor/saleor.git): 中等规模电商项目，代表典型的业务逻辑。 (Medium-scale E-commerce, representing typical business logic)
+*   [**repo_iot_special**](https://github.com/home-assistant/core.git): 物联网专项仓库，包含领域特定设计模式。 (Specialized IoT repo with domain-specific patterns) 
 
-从代码仓库自动生成问答对，包括：
-- 代码上下文（文件路径、行号、代码片段）
-- 业务规则提取
-- 逐步推理轨迹
-- 多种复杂度级别
+这些库分别代表了不同的规模 (Scale) 和 领域 (Domain)。在测试中，我们对大规模仓库进行了抽样处理，并跳过了人工审核环节以实现全自动化。
+These repositories represent different scales and domains. In testing, we sampled large-scale repositories and skipped manual review for full automation.
 
-### Scenario 2: Design Solution Generation / 场景2：设计方案生成
+## 📁 目录指南 / Directory Guide
 
-Generates architectural design solutions based on requirements with:
-- Architecture analysis and component identification
-- Design decision reasoning with alternatives
-- Code references to similar patterns
-- Implementation plans
+*   `src/pipeline/`: 核心逻辑组件（切片器、处理器、提交器、编译器）。 Core logic components.
+*   `data/`: 数据流中心（从 0.原始代码 到 5.最终输出）。 Data flow center.
 
-根据需求生成架构设计方案，包括：
-- 架构分析和组件识别
-- 设计决策推理及备选方案
-- 相似模式的代码引用
-- 实施计划
+## 🛠️ 开始使用 / Getting Started
 
-## Installation / 安装
-
-### Prerequisites / 前置要求
-
-- Python 3.8 or higher
-- Git
-
-### Setup / 设置
-
-```bash
-# Clone the repository / 克隆仓库
-git clone https://github.com/xianyu564/local-training-dataset-generator.git
-cd local-training-dataset-generator
-
-# Install dependencies / 安装依赖
-pip install -r requirements.txt
-```
-
-## Quick Start / 快速开始
-
-### Pipeline Approach (Recommended) / 流水线方法（推荐）
-
-The **new pipeline approach** provides a production-ready workflow with manual review checkpoints and LLM batch processing support:
-
-**新的流水线方法**提供了生产就绪的工作流，包含人工审核检查点和LLM批处理支持：
-
-```bash
-# Run the complete pipeline workflow
-# 运行完整的流水线工作流
-python examples/pipeline_workflow.py
-```
-
-**Pipeline stages** / **流水线阶段**:
-1. **Code Slicing** - Extract code segments → Manual review
-2. **Batch Processing** - Generate prompts for GPT Batch API
-3. **Review Generated Data** - Manual quality control
-4. **Compilation** - Statistics, shuffle, final JSONL output
-
-📖 **See [PIPELINE.md](PIPELINE.md) for detailed workflow guide**
-📖 **详细工作流指南请参见 [PIPELINE.md](PIPELINE.md)**
-
-### Legacy Direct Generation / 旧版直接生成
-
-The original direct generation approach (kept for backward compatibility):
-原始的直接生成方法（保留以向后兼容）：
-
-```python
-from src.dataset_generator.core import DatasetGenerator
-
-# Initialize with a GitHub repository
-# 使用GitHub仓库初始化
-generator = DatasetGenerator.from_github_url(
-    repo_url="https://github.com/pallets/flask.git",
-    clone_dir="/tmp/datasets",
-    repo_name="pallets/flask"
-)
-
-# Analyze the repository
-# 分析仓库
-generator.analyze_repository(max_files=20)
-
-# Generate Scenario 1 dataset (Q&A pairs)
-# 生成场景1数据集（问答对）
-qa_pairs = generator.generate_scenario1_dataset(
-    max_pairs=20,
-    languages=["en", "zh"]
-)
-
-# Generate Scenario 2 dataset (Design solutions)
-# 生成场景2数据集（设计方案）
-solutions = generator.generate_scenario2_dataset(
-    max_solutions=4,
-    languages=["en", "zh"]
-)
-
-# Export datasets
-# 导出数据集
-generator.export_dataset(
-    output_dir="./output/flask_dataset",
-    qa_pairs=qa_pairs,
-    solutions=solutions,
-    split_by_language=True
-)
-```
-
-### Run Example Scripts / 运行示例脚本
-
-```bash
-# New pipeline workflow (recommended)
-# 新的流水线工作流（推荐）
-python examples/pipeline_workflow.py
-
-# Legacy example
-# 旧版示例
-python examples/generate_flask_dataset.py
-```
-
-## Dataset Structure / 数据集结构
-
-### Q&A Pair Format / 问答对格式
-
-```json
-{
-  "id": "unique_identifier",
-  "type": "qa_pair",
-  "language": "en",
-  "question": "What does the function do?",
-  "answer": "The function implements...",
-  "code_context": {
-    "file_path": "path/to/file.py",
-    "function_name": "function_name",
-    "code_snippet": "def function_name():\n    ...",
-    "start_line": 10,
-    "end_line": 25
-  },
-  "business_rules": ["rule1", "rule2"],
-  "reasoning_trace": {
-    "steps": [
-      {
-        "step_number": 1,
-        "description": "Analysis step",
-        "code_reference": "specific code",
-        "reasoning": "explanation"
-      }
-    ],
-    "conclusion": "final reasoning"
-  },
-  "metadata": {
-    "repository": "owner/repo",
-    "complexity": "medium",
-    "tags": ["tag1", "tag2"]
-  }
-}
-```
-
-### Design Solution Format / 设计方案格式
-
-```json
-{
-  "id": "unique_identifier",
-  "type": "design_solution",
-  "language": "en",
-  "requirement": {
-    "title": "Requirement title",
-    "description": "Description",
-    "constraints": ["constraint1"],
-    "functional_requirements": ["req1"],
-    "non_functional_requirements": ["nfr1"]
-  },
-  "design_solution": {
-    "overview": "Design overview",
-    "architecture": {
-      "style": "Layered Architecture",
-      "components": [...],
-      "data_flow": "Flow description",
-      "technology_stack": {...}
-    },
-    "implementation_plan": [...]
-  },
-  "code_references": {...},
-  "reasoning_trace": {
-    "decision_points": [...],
-    "architecture_evolution": [...]
-  },
-  "metadata": {...}
-}
-```
-
-## Architecture / 架构
-
-The system supports two approaches:
-
-### 1. Pipeline Architecture (Production-Ready) / 流水线架构（生产就绪）
-
-A multi-stage pipeline with manual review checkpoints and LLM batch processing:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Stage 1: Code Slicing                                      │
-│  Extract code segments from repositories                     │
-│  → Output: slices/*.jsonl                                   │
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Checkpoint 1: Manual Review                                │
-│  Human review and filtering of code slices                  │
-│  → Output: reviewed_slices/*.jsonl                          │
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Stage 3: Batch Processing Preparation                      │
-│  Generate prompts for GPT Batch API                         │
-│  → Submit to OpenAI Batch API                               │
-│  → Download: batch_output/*.jsonl                           │
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Checkpoint 2: Manual Review                                │
-│  Review LLM-generated Q&A and design solutions              │
-│  → Output: batch_output/*.jsonl (filtered)                  │
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Stage 5: Dataset Compilation                               │
-│  Statistics, shuffle, and merge                             │
-│  → Output: final_output/training_dataset.jsonl             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Key Benefits**:
-- ✅ Manual quality control at critical points
-- ✅ Cost-efficient batch processing
-- ✅ Clear separation of concerns
-- ✅ Production-ready with checkpoints
-- ✅ Supports GPT Batch API for scale
-
-📖 **See [PIPELINE.md](PIPELINE.md) for detailed guide**
-
-### 2. Direct Generation Architecture / 直接生成架构
-
-The original system consists of five main layers (kept for backward compatibility):
-
-原始系统包含五个主要层（保留以向后兼容）：
-
-1. **Input Layer** - Repository cloning and configuration
-2. **Analysis Layer** - Code parsing, AST analysis, pattern detection
-3. **Generation Layer** - Q&A and design solution generation
-4. **Quality Assurance Layer** - Validation and diversity checking
-5. **Output Layer** - Dataset formatting and export
-
-For detailed architecture documentation, see [DESIGN.md](DESIGN.md).
-
-## Data Quality / 数据质量
-
-### Diversity Mechanisms / 多样性机制
-
-- Code coverage from different modules and complexity levels
-- Multiple question types (what, how, why)
-- Various abstraction levels (implementation, design, architecture)
-- Bilingual parallel generation
-
-### Quality Metrics / 质量指标
-
-- Completeness validation
-- Code context relevance
-- Reasoning depth measurement
-- Technical accuracy verification
-
-## Output Files / 输出文件
-
-The system generates the following files:
-
-- `scenario1_qa_pairs_en.json` - English Q&A pairs
-- `scenario1_qa_pairs_zh.json` - Chinese Q&A pairs
-- `scenario2_design_solutions_en.json` - English design solutions
-- `scenario2_design_solutions_zh.json` - Chinese design solutions
-- `complete_dataset.json` - Combined dataset with metadata
-- `train_dataset.json` - Training set (80%)
-- `test_dataset.json` - Test set (20%)
-- `dataset_report.json` - Statistics and quality metrics
-
-## Testing Public Repositories / 测试公开仓库
-
-The system has been tested with various public GitHub repositories:
-
-- **Flask** (pallets/flask) - Web framework
-- **Requests** (psf/requests) - HTTP library
-- **Django** (django/django) - Web framework
-- And more...
-
-## Extensibility / 可扩展性
-
-The system is designed for extensibility:
-
-- **Plugin Architecture** - Add support for new languages
-- **Custom Generators** - Implement domain-specific generators
-- **Configurable** - YAML-based configuration
-- **Modular** - Clean separation of concerns
-
-## Utilities / 实用工具
-
-```python
-from src.utils.dataset_utils import (
-    validate_dataset,
-    calculate_diversity_score,
-    split_train_test,
-    generate_statistics_report
-)
-
-# Validate dataset quality
-validation_results = validate_dataset(dataset)
-
-# Calculate diversity score
-diversity = calculate_diversity_score(dataset)
-
-# Split into train/test
-train_set, test_set = split_train_test(dataset, test_ratio=0.2)
-
-# Generate comprehensive report
-report = generate_statistics_report(dataset)
-```
-
-## Contributing / 贡献
-
-Contributions are welcome! Please feel free to submit pull requests.
-
-欢迎贡献！请随时提交拉取请求。
-
-## License / 许可证
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Documentation / 文档
-
-- **[Quick Start Guide (QUICKSTART.md)](QUICKSTART.md)** - Fast reference for common tasks
-- **[Pipeline Workflow (PIPELINE.md)](PIPELINE.md)** - Detailed pipeline guide
-- **[Design Document (DESIGN.md)](DESIGN.md)** - Comprehensive system design
-- **[Examples](examples/)** - Usage examples
-
-## Evaluation Criteria / 评估标准
-
-✅ **Dataset Coverage** - Both scenarios fully implemented  
-✅ **Logic Correctness** - Validated reasoning traces  
-✅ **Effectiveness** - Automated high-quality generation  
-✅ **Innovation** - Context-aware reasoning trace generation  
-✅ **System Completeness** - All components implemented  
-✅ **Extensibility** - Modular and configurable architecture  
-✅ **Data Clarity** - Clear structure and metadata  
-✅ **Reasoning Traces** - Detailed step-by-step reasoning
-
-## Future Enhancements / 未来增强
-
-- LLM integration for enhanced generation
-- Multi-language code support (JavaScript, Java, etc.)
-- Interactive refinement interface
-- Automatic model training pipeline
-- Version control awareness
-- Incremental dataset updates
+1.  **安装依赖 / Install Dependencies**: `pip install -r requirements.txt`
+2.  **配置 / Configuration**: 编辑 `config.json` (提供 OpenAI API Key).
+3.  **准备源码 / Prepare Source**: 将仓库放入 `data/0.cloned_repo/`.
+4.  **运行流水线 / Run Pipeline**: 详见 [使用指南](docs/USAGE.md). See [Usage Guide](docs/USAGE.md).
 
 ---
 
-**Made with ❤️ for AI model training**  
-**为AI模型训练而制作 ❤️**
+📖 详细文档 / Documentation:
+- [使用指南 (Usage Guide)](docs/USAGE.md)
+- [设计文档 (Design Document)](docs/DESIGN.md)
+- [处理记录 (Processing Records)](docs/RECORDS.md)
