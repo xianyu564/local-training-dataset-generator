@@ -4,6 +4,7 @@ Configuration loader utility
 """
 
 import yaml
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -25,10 +26,37 @@ class Config:
     def _load(self) -> None:
         """Load configuration from file"""
         if not self.config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {self.config_path}")
+            # Use default configuration if file doesn't exist
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Config file not found: {self.config_path}. Using defaults.")
+            self._config = self._get_defaults()
+            return
         
         with open(self.config_path, 'r', encoding='utf-8') as f:
             self._config = yaml.safe_load(f)
+    
+    def _get_defaults(self) -> Dict[str, Any]:
+        """Get default configuration / 获取默认配置"""
+        return {
+            'pipeline': {
+                'slices_dir': 'slices',
+                'reviewed_slices_dir': 'reviewed_slices',
+                'batch_input_dir': 'batch_input',
+                'batch_output_dir': 'batch_output',
+                'final_output_dir': 'final_output',
+                'repositories': [],
+                'max_scenario1_items': 100,
+                'max_scenario2_items': 50,
+                'shuffle_dataset': True,
+                'random_seed': 42
+            },
+            'repository': {
+                'clone_dir': '/tmp/datasets'
+            },
+            'output': {
+                'format': 'jsonl'
+            }
+        }
     
     def get(self, key: str, default: Any = None) -> Any:
         """

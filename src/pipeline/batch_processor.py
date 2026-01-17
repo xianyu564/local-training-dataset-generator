@@ -311,12 +311,23 @@ Generate the response in valid JSON format only."""
                             # Parse JSON from content
                             try:
                                 # Extract JSON from markdown code blocks if present
-                                if '```json' in content:
-                                    content = content.split('```json')[1].split('```')[0].strip()
-                                elif '```' in content:
-                                    content = content.split('```')[1].split('```')[0].strip()
+                                content_cleaned = content.strip()
+                                if '```json' in content_cleaned:
+                                    # Split by ```json and take the part after it
+                                    parts = content_cleaned.split('```json')
+                                    if len(parts) > 1:
+                                        # Now split by ``` to get the content
+                                        json_parts = parts[1].split('```')
+                                        if json_parts:
+                                            content_cleaned = json_parts[0].strip()
+                                elif '```' in content_cleaned:
+                                    # Generic code block
+                                    parts = content_cleaned.split('```')
+                                    if len(parts) >= 3:
+                                        # Take the middle part (between first and last ```)
+                                        content_cleaned = parts[1].strip()
                                 
-                                parsed_data = json.loads(content)
+                                parsed_data = json.loads(content_cleaned)
                                 parsed_data['id'] = custom_id
                                 parsed_data['scenario'] = scenario
                                 results.append(parsed_data)

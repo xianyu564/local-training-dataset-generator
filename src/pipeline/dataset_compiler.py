@@ -64,6 +64,12 @@ class DatasetCompiler:
                     data.append(json.loads(line))
         return data
     
+    def _calculate_percentage(self, count: int, total: int) -> float:
+        """Calculate percentage safely / 安全计算百分比"""
+        if total == 0:
+            return 0.0
+        return round(count / total * 100, 2)
+    
     def generate_statistics(self) -> Dict[str, Any]:
         """
         Generate comprehensive statistics about the dataset
@@ -72,6 +78,8 @@ class DatasetCompiler:
         Returns:
             Dictionary with statistics
         """
+        total_items = len(self.scenario1_data) + len(self.scenario2_data)
+        
         stats = {
             "generated_at": datetime.now().isoformat(),
             "scenario1": {
@@ -92,15 +100,9 @@ class DatasetCompiler:
                 "avg_decision_points": self._calculate_avg_decision_points(self.scenario2_data)
             },
             "combined": {
-                "total_items": len(self.scenario1_data) + len(self.scenario2_data),
-                "scenario1_percentage": round(
-                    len(self.scenario1_data) / max(1, len(self.scenario1_data) + len(self.scenario2_data)) * 100, 
-                    2
-                ),
-                "scenario2_percentage": round(
-                    len(self.scenario2_data) / max(1, len(self.scenario1_data) + len(self.scenario2_data)) * 100,
-                    2
-                )
+                "total_items": total_items,
+                "scenario1_percentage": self._calculate_percentage(len(self.scenario1_data), total_items),
+                "scenario2_percentage": self._calculate_percentage(len(self.scenario2_data), total_items)
             }
         }
         
