@@ -1,0 +1,105 @@
+# Configuration for Training Dataset Generator
+# 训练数据集生成器配置
+
+# Analysis settings / 分析设置
+analysis:
+  # Supported programming languages
+  languages:
+    - python
+  
+  # Maximum directory depth for code analysis
+  max_depth: 3
+  
+  # Include test files in analysis
+  include_tests: false
+  
+  # Maximum number of files to analyze (null for all)
+  max_files: null
+  
+  # Exclude patterns
+  exclude_patterns:
+    - "*/tests/*"
+    - "*/test/*"
+    - "*/__pycache__/*"
+    - "*/venv/*"
+    - "*/env/*"
+    - "*/.git/*"
+
+# Generation settings / 生成设置
+generation:
+  # Number of Q&A pairs to generate per file
+  qa_pairs_per_file: 5
+  
+  # Minimum complexity to include
+  min_complexity: "simple"
+  
+  # Include reasoning traces
+  include_reasoning: true
+  
+  # Maximum Q&A pairs total
+  max_qa_pairs: 100
+  
+  # Maximum design solutions
+  max_design_solutions: 10
+  
+  # Languages to generate
+  languages:
+    - en
+    - zh
+
+# Quality settings / 质量设置
+quality:
+  # Minimum code snippet length (lines)
+  min_code_lines: 5
+  
+  # Maximum code snippet length (lines)
+  max_code_lines: 50
+  
+  # Minimum diversity threshold (0.0 to 1.0)
+  diversity_threshold: 0.7
+  
+  # Validation rules
+  validation:
+    check_completeness: true
+    check_consistency: true
+    check_relevance: true
+
+# Output settings / 输出设置
+output:
+  # Output format (json, jsonl)
+  format: "json"
+  
+  # Generate bilingual datasets
+  bilingual: true
+  
+  # Split into train/test sets
+  split_train_test: true
+  
+  # Test set ratio
+  test_ratio: 0.2
+  
+  # Output directory
+  output_dir: "./output"
+  
+  # Split by language into separate files
+  split_by_language: true
+  
+  # Pretty print JSON (indentation)
+  json_indent: 2
+
+# Repository settings / 仓库设置
+repository:
+  # Clone directory for repositories
+  clone_dir: "/tmp/datasets"
+  
+  # Cleanup cloned repos after generation
+  cleanup_after: false
+  
+  # Default branch
+  default_branch: "main"
+
+# Logging settings / 日志设置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null  # Set to file path to enable file logging
