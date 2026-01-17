@@ -1,0 +1,11 @@
+scenario,difficulty,question
+1,simple,"请分析 `convert_field_to_camel_case` 函数的工作原理，并说明它是如何处理带下划线的字符串的（例如 'field_name' 转换后的结果）。"
+1,simple,"`fastapi_kwargs` 方法的作用是什么？它返回的字典通常用于配置 FastAPI 实例的哪些核心参数？"
+1,medium,"详细解释 `remove_the_oldest_user_address` 函数的逻辑。它是如何通过排除法确保不误删用户的默认账单或收货地址的？它的排序逻辑基于什么假设？"
+1,medium,"在 `get_total_gift_cards_balance` 方法中，代码是如何支持多数据库连接查询的？它如何利用 `.active()` 确保统计的准确性？如果聚合查询结果为 None，返回值的处理逻辑是怎样的？"
+1,complex,"请深度解析 `_prepare_order_data` 函数作为订单创建前置处理器的职责。它是如何协调价格计算、税率、礼品卡验证以及优惠券处理的？特别是在发生 `TaxError` 异常时，它是如何通过回滚机制保证优惠券（Voucher）使用状态一致性的？"
+2,simple,"基于现有架构中的 `BlockingCall` 模式，请设计一个简单的消息通知系统。要求支持邮件和短信发送，并详细说明如何利用线程池机制确保这些 IO 密集型操作不会阻塞主事件循环。"
+2,simple,"为系统添加一个通知模块，使得在用户通过 `CreateToken` 变动（Mutation）成功登录后，能自动触发一封安全提醒。请说明你如何将通知逻辑与现有的 GraphQL Mutation 生命周期解耦。"
+2,medium,"需求是添加一个支持多种渠道（邮件、短信、站内信）的消息通知系统。请结合 `CoreAppConfig.ready()` 的集中化初始化机制，设计一套符合现有架构模式的可扩展技术方案。"
+2,medium,"现有的 `TransactionFlowStrategy` 定义了授权和扣款的交易流策略。请设计一套接入微信支付的技术方案，重点说明如何处理支付异步回调（Callback）以及如何将退款逻辑映射到现有的交易流状态机中。"
+2,complex,"为了提高 `Discount` 相关频繁查询接口的响应速度，请设计一套 Redis 缓存层方案。要求详细说明：1) 缓存键（Cache Key）的命名约定；2) 读写一致性策略（如何处理缓存命中与失效）；3) 如何利用模型信号（Signals）实现精确失效；4) 在 Redis 服务不可用时的降级处理机制。"
