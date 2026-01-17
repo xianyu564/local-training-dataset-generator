@@ -1,0 +1,7 @@
+outputs/
+qwen2.5-0.5b-lora/
+model_q8_0/
+*.bin
+*.pth
+*.gguf
+__pycache__/

@@ -235,6 +235,9 @@ training_dataset.jsonl
 dataset_statistics.json
 review_summary.md
 
+# Fine-tune model weight
+src/fine-tune/data/
+
 # Temporary files
 tmp/
 .DS_Store
