@@ -1,311 +1,184 @@
 """
-Pipeline Workflow Example - Complete End-to-End Process
-流水线工作流示例 - 完整的端到端过程
+Pipeline Workflow - Automated End-to-End Training Dataset Generation
+自动化端到端训练数据集生成流水线
 
-This example demonstrates the complete pipeline from code slicing to final dataset compilation.
-此示例演示从代码切片到最终数据集编译的完整流水线。
+This workflow automates the entire process from code slicing to dataset compilation,
+skipping the manual review stage for direct processing.
+此工作流自动化了从代码切片到数据集编译的整个过程，跳过人工审核阶段直接进行处理。
 """
 
 import sys
 import logging
+import json
+import shutil
 from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Any
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.pipeline.code_slicer import CodeSlicer
-from src.pipeline.batch_processor import BatchProcessor
+from src.pipeline.scenario_processor import ScenarioProcessor
+from src.pipeline.batch_submitter import BatchSubmitter
 from src.pipeline.dataset_compiler import DatasetCompiler
-from src.analyzers.code_analyzer import RepositoryCloner
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("PipelineWorkflow")
 
 def main():
-    """Main pipeline workflow"""
-    
-    # Configuration
-    # 配置
-    REPOS = [
-        {
-            "url": "https://github.com/nsidnev/fastapi-realworld-example-app.git",
-            "name": "nsidnev/fastapi-realworld-example-app"
-        },
-        # Add more repositories as needed
-        # 根据需要添加更多仓库
-    ]
-    
-    CLONE_DIR = "/tmp/datasets"
-    MAX_FILES_PER_REPO = 20  # Limit for demonstration
-    
-    print("=" * 60)
-    print("Training Dataset Generation Pipeline")
-    print("训练数据集生成流水线")
-    print("=" * 60)
-    
+    # 1. Configuration / 配置
     # ========================================================================
-    # STAGE 1: Code Slicing
-    # 阶段1：代码切片
+    REPOS_ROOT = Path("data/0.cloned_repo")
+    SLICES_ROOT = Path("data/1.slices")
+    BATCH_INPUT_ROOT = Path("data/3.batch_input")
+    BATCH_OUTPUT_ROOT = Path("data/4.batch_output")
+    FINAL_OUTPUT_ROOT = Path("data/5.final_output")
+    
+    CONFIG_PATH = "config.json"
+    MAX_FILES_PER_REPO = 100 # Adjust as needed
+    
+    # Ensure directories exist
+    for d in [SLICES_ROOT, BATCH_INPUT_ROOT, BATCH_OUTPUT_ROOT, FINAL_OUTPUT_ROOT]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    print("=" * 70)
+    print("🚀 Elephenotype: Training Dataset Generation Pipeline")
+    print("🚀 Elephenotype: 训练数据集生成流水线 (自动化版)")
+    print("=" * 70)
+
+    # 2. STAGE 1: Code Slicing / 代码切片
     # ========================================================================
-    print("\n[STAGE 1] Code Slicing / 代码切片")
-    print("-" * 60)
+    print(f"\n[STAGE 1] Code Slicing / 代码切片")
+    print("-" * 70)
     
-    slicer = CodeSlicer(output_dir="slices")
-    
-    for repo in REPOS:
-        logger.info(f"Processing repository: {repo['name']}")
+    repo_dirs = [d for d in REPOS_ROOT.iterdir() if d.is_dir()]
+    if not repo_dirs:
+        logger.error(f"No repositories found in {REPOS_ROOT}. Please clone some repos first.")
+        return
+
+    slicer = CodeSlicer()
+    all_slices_paths = []
+
+    for repo_path in repo_dirs:
+        repo_name = repo_path.name
+        logger.info(f"Slicing repository: {repo_name}")
         
-        # Clone repository if needed
-        # 如果需要，克隆仓库
-        repo_path = Path(CLONE_DIR) / repo['name'].replace('/', '_')
-        if not repo_path.exists():
-            logger.info(f"Cloning {repo['url']}...")
-            RepositoryCloner.clone(repo['url'], str(repo_path))
-        
-        # Slice the repository
-        # 切片仓库
-        slices = slicer.slice_repository(
+        # Slice repository
+        repo_slices = slicer.slice_repository(
             repo_path=str(repo_path),
-            repo_name=repo['name'],
+            repo_name=repo_name,
             max_files=MAX_FILES_PER_REPO
         )
-        logger.info(f"Generated {len(slices)} slices from {repo['name']}")
-    
-    # Export slices to JSONL
-    # 导出切片到JSONL
-    slices_file = slicer.export_slices()
-    logger.info(f"Slices exported to: {slices_file}")
-    
-    # Show statistics
-    # 显示统计信息
-    stats = slicer.get_statistics()
-    print("\nSlicing Statistics / 切片统计:")
-    print(f"  Total slices: {stats['total_slices']}")
-    print(f"  By type: {stats['by_type']}")
-    print(f"  By complexity: {stats['by_complexity']}")
-    
-    print("\n⚠️  MANUAL REVIEW CHECKPOINT 1 / 人工审核检查点1")
-    print("   Please review the slices at:", slices_file)
-    print("   Move reviewed slices to 'reviewed_slices/' directory")
-    print("   请审核切片文件:", slices_file)
-    print("   将审核后的切片移至 'reviewed_slices/' 目录")
-    
+        
+        # Export to data/1.slices/{repo_name}/code_slices.jsonl
+        repo_output_dir = SLICES_ROOT / repo_name
+        repo_output_dir.mkdir(parents=True, exist_ok=True)
+        slices_file = slicer.export_slices(output_file=repo_output_dir / "code_slices.jsonl")
+        all_slices_paths.append(slices_file)
+        
+        # Clear slicer's internal state for next repo
+        slicer.slices = []
+
+    # 3. STAGE 2: Scenario Processing / 场景处理 (跳过人工审核)
     # ========================================================================
-    # STAGE 2: Manual Review (simulated - in practice, user does this)
-    # 阶段2：人工审核（模拟 - 实践中由用户完成）
+    # 直接使用 data/1.slices 作为输入，跳过 data/2.reviewed_slices
+    print(f"\n[STAGE 2] Scenario Processing / 场景处理 (Skipping Manual Review)")
+    print("-" * 70)
+    
+    processor = ScenarioProcessor(config_path=CONFIG_PATH)
+    
+    for repo_name in [d.name for d in repo_dirs]:
+        logger.info(f"Processing scenarios for: {repo_name}")
+        
+        # Use slices from Stage 1 directly
+        repo_slices_dir = SLICES_ROOT / repo_name
+        repo_batch_input_dir = BATCH_INPUT_ROOT / repo_name
+        repo_batch_input_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Update processor output dir for this repo
+        processor.output_dir = repo_batch_input_dir
+        
+        # Process slices into batch inputs
+        # Note: We pass SLICES_ROOT/{repo_name} as the "reviewed" directory
+        batch_files = processor.process_reviewed_slices(
+            reviewed_slices_dir=str(repo_slices_dir),
+            max_scenario1=200, # Example limits
+            max_scenario2=100
+        )
+        logger.info(f"Generated batch inputs for {repo_name}: {list(batch_files.keys())}")
+
+    # 4. STAGE 3: Batch Submission / 批处理提交
     # ========================================================================
-    print("\n[STAGE 2] Manual Review / 人工审核")
-    print("-" * 60)
-    print("In practice, you would:")
-    print("1. Review slices in 'slices/' directory")
-    print("2. Filter or modify as needed")
-    print("3. Save approved slices to 'reviewed_slices/'")
-    print("\n实践中，您需要：")
-    print("1. 审核 'slices/' 目录中的切片")
-    print("2. 根据需要过滤或修改")
-    print("3. 将批准的切片保存到 'reviewed_slices/'")
+    print(f"\n[STAGE 3] Batch Submission / 批处理提交")
+    print("-" * 70)
     
-    # For demo purposes, we'll use the original slices
-    # 为演示目的，我们将使用原始切片
-    reviewed_slices_file = slices_file
-    
+    # Check if config has API key
+    try:
+        submitter = BatchSubmitter(config_path=CONFIG_PATH)
+        user_input = input("Do you want to submit these batches to OpenAI now? (y/n): ")
+        
+        if user_input.lower() == 'y':
+            for repo_name in [d.name for d in repo_dirs]:
+                repo_input_dir = BATCH_INPUT_ROOT / repo_name
+                repo_output_dir = BATCH_OUTPUT_ROOT / repo_name
+                
+                logger.info(f"Submitting batches for {repo_name}...")
+                submission_results = submitter.submit_batch_files(
+                    batch_input_dir=str(repo_input_dir),
+                    output_dir=str(repo_output_dir)
+                )
+                logger.info(f"Submitted {len(submission_results['submitted_jobs'])} jobs for {repo_name}")
+        else:
+            print("Skipping submission. You can submit later using:")
+            print("python src/pipeline/batch_submitter.py")
+    except Exception as e:
+        logger.error(f"Batch submission setup failed (possibly missing config.json or API key): {e}")
+        print("Skipping automatic submission.")
+
+    # 5. STAGE 4: Dataset Compilation / 数据集编译
     # ========================================================================
-    # STAGE 3: Batch Processing Preparation
-    # 阶段3：批处理准备
-    # ========================================================================
-    print("\n[STAGE 3] Batch Processing Preparation / 批处理准备")
-    print("-" * 60)
+    print(f"\n[STAGE 4] Dataset Compilation / 数据集编译")
+    print("-" * 70)
+    print("NOTE: This stage requires batch results in data/4.batch_output.")
     
-    processor = BatchProcessor(
-        config_path="llm_config.yaml",
-        output_dir="batch_input"
-    )
+    # We check if there are any results to compile
+    output_files = list(BATCH_OUTPUT_ROOT.rglob("scenario*_output.jsonl"))
     
-    # Load reviewed slices
-    # 加载审核后的切片
-    with open(reviewed_slices_file, 'r') as f:
-        import json
-        reviewed_slices = [json.loads(line) for line in f if line.strip()]
-    
-    # Split slices for different scenarios
-    # 为不同场景分割切片
-    # For Scenario 1: Use function slices (Q&A works better with functions)
-    # 场景1：使用函数切片（问答更适合函数）
-    scenario1_slices = [s for s in reviewed_slices if s['type'] == 'function'][:10]
-    
-    # For Scenario 2: Use class slices (Design works better with classes)
-    # 场景2：使用类切片（设计更适合类）
-    scenario2_slices = [s for s in reviewed_slices if s['type'] == 'class'][:5]
-    
-    logger.info(f"Scenario 1 slices: {len(scenario1_slices)}")
-    logger.info(f"Scenario 2 slices: {len(scenario2_slices)}")
-    
-    # Create batch requests for Scenario 1
-    # 为场景1创建批处理请求
-    scenario1_requests = processor.create_scenario1_prompts(scenario1_slices)
-    scenario1_batch_file = processor.export_batch_requests(
-        scenario1_requests, 
-        scenario="scenario1"
-    )
-    logger.info(f"Scenario 1 batch requests exported to: {scenario1_batch_file}")
-    
-    # Create batch requests for Scenario 2
-    # 为场景2创建批处理请求
-    scenario2_requests = processor.create_scenario2_prompts(scenario2_slices)
-    scenario2_batch_file = processor.export_batch_requests(
-        scenario2_requests,
-        scenario="scenario2"
-    )
-    logger.info(f"Scenario 2 batch requests exported to: {scenario2_batch_file}")
-    
-    print("\n📝 Next Steps for Batch Processing:")
-    print("1. Upload batch files to OpenAI Batch API")
-    print("2. Wait for processing (typically 24h)")
-    print("3. Download results to 'batch_output/' directory")
-    print("\n📝 批处理的后续步骤：")
-    print("1. 将批处理文件上传到OpenAI批处理API")
-    print("2. 等待处理（通常24小时）")
-    print("3. 将结果下载到 'batch_output/' 目录")
-    
-    # ========================================================================
-    # STAGE 4: Manual Review of Generated Data (in practice)
-    # 阶段4：生成数据的人工审核（实践中）
-    # ========================================================================
-    print("\n[STAGE 4] Manual Review of Generated Data / 生成数据的人工审核")
-    print("-" * 60)
-    print("After batch processing completes:")
-    print("1. Review the generated Q&A pairs and design solutions")
-    print("2. Filter out low-quality items")
-    print("3. Keep approved items for final compilation")
-    print("\n批处理完成后：")
-    print("1. 审核生成的问答对和设计方案")
-    print("2. 过滤掉低质量项目")
-    print("3. 保留批准的项目用于最终编译")
-    
-    # ========================================================================
-    # STAGE 5: Dataset Compilation (simulated with dummy data)
-    # 阶段5：数据集编译（使用虚拟数据模拟）
-    # ========================================================================
-    print("\n[STAGE 5] Dataset Compilation / 数据集编译")
-    print("-" * 60)
-    print("NOTE: This stage requires actual batch API responses.")
-    print("For demonstration, we'll create dummy response files.")
-    print("\n注意：此阶段需要实际的批处理API响应。")
-    print("为演示目的，我们将创建虚拟响应文件。")
-    
-    # Create dummy response files for demonstration
-    # 为演示创建虚拟响应文件
-    _create_dummy_responses()
-    
-    # Compile the dataset
-    # 编译数据集
-    compiler = DatasetCompiler(output_dir="final_output")
-    
-    # Load scenario data (if exists)
-    # 加载场景数据（如果存在）
-    scenario1_response = "batch_output/scenario1_responses.jsonl"
-    scenario2_response = "batch_output/scenario2_responses.jsonl"
-    
-    if Path(scenario1_response).exists() and Path(scenario2_response).exists():
-        compiler.load_scenario_data(
-            scenario1_file=scenario1_response,
-            scenario2_file=scenario2_response
+    if not output_files:
+        print("No batch results found in data/4.batch_output.")
+        print("Please download results after they are processed by OpenAI and place them in the directory structure:")
+        print("data/4.batch_output/{repo_name}/scenarioX_output.jsonl")
+    else:
+        logger.info(f"Found {len(output_files)} result files. Starting compilation...")
+        
+        # DatasetCompiler uses source_data_dir for mapping
+        # Since we skipped manual review, we point it to SLICES_ROOT (data/1.slices)
+        compiler = DatasetCompiler(
+            output_dir=str(FINAL_OUTPUT_ROOT),
+            source_data_dir=str(SLICES_ROOT)
         )
         
-        # Generate statistics
-        # 生成统计信息
-        stats_file = compiler.export_statistics()
-        logger.info(f"Statistics exported to: {stats_file}")
+        results = compiler.process_all_outputs(
+            batch_output_dir=str(BATCH_OUTPUT_ROOT),
+            train_ratio=0.8,
+            val_ratio=0.2
+        )
         
-        # Export training dataset
-        # 导出训练数据集
-        training_file = compiler.export_training_dataset(shuffle=True, seed=42)
-        logger.info(f"Training dataset exported to: {training_file}")
-        
-        # Create review summary
-        # 创建审核摘要
-        summary_file = compiler.create_review_summary()
-        logger.info(f"Review summary created at: {summary_file}")
-        
-        print("\n✅ Pipeline Complete! / 流水线完成！")
-        print(f"   Training dataset: {training_file}")
-        print(f"   Statistics: {stats_file}")
-        print(f"   Review summary: {summary_file}")
-    else:
-        print("\n⚠️  Batch response files not found. Skipping compilation.")
-        print("   Please process batch requests and place responses in batch_output/")
-        print("\n⚠️  未找到批处理响应文件。跳过编译。")
-        print("   请处理批处理请求并将响应放在 batch_output/ 中")
+        print("\n✅ Compilation Complete!")
+        print(f"   Train Dataset: {results['unified_datasets']['train']}")
+        print(f"   Val Dataset:   {results['unified_datasets']['val']}")
+        print(f"   Statistics:    {results['statistics_file']}")
+        print(f"   Summary:       {results['summary_file']}")
 
-
-def _create_dummy_responses():
-    """Create dummy response files for demonstration"""
-    import json
-    from pathlib import Path
-    
-    output_dir = Path("batch_output")
-    output_dir.mkdir(exist_ok=True)
-    
-    # Dummy Scenario 1 response
-    scenario1_data = [
-        {
-            "id": "scenario1_test_00001",
-            "scenario": "scenario1",
-            "question": "What does this function do?",
-            "answer": "This function processes data...",
-            "reasoning_trace": {
-                "steps": [
-                    {
-                        "step_number": 1,
-                        "description": "Analyze function signature",
-                        "code_reference": "def process_data()",
-                        "reasoning": "Identifies the function purpose"
-                    }
-                ],
-                "conclusion": "Function performs data processing"
-            },
-            "business_rules": ["Validates input data"]
-        }
-    ]
-    
-    with open(output_dir / "scenario1_responses.jsonl", 'w') as f:
-        for item in scenario1_data:
-            f.write(json.dumps(item, ensure_ascii=False) + '\n')
-    
-    # Dummy Scenario 2 response
-    scenario2_data = [
-        {
-            "id": "scenario2_test_00001",
-            "scenario": "scenario2",
-            "requirement": {
-                "title": "User authentication",
-                "description": "Implement secure user login",
-                "constraints": ["Must be RESTful"]
-            },
-            "design_solution": {
-                "overview": "JWT-based authentication",
-                "architecture": {
-                    "style": "Layered",
-                    "components": ["AuthController", "TokenService"],
-                    "data_flow": "Client -> API -> Database"
-                }
-            },
-            "reasoning_trace": {
-                "decision_points": [
-                    {
-                        "decision": "Use JWT tokens",
-                        "rationale": "Stateless and scalable"
-                    }
-                ]
-            }
-        }
-    ]
-    
-    with open(output_dir / "scenario2_responses.jsonl", 'w') as f:
-        for item in scenario2_data:
-            f.write(json.dumps(item, ensure_ascii=False) + '\n')
-
+    print("\n" + "=" * 70)
+    print("🏁 Workflow execution finished / 工作流执行完毕")
+    print("=" * 70)
 
 if __name__ == "__main__":
     main()
