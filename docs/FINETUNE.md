@@ -39,6 +39,18 @@ We used the following key configurations during training:
     1,400+ automatically generated high-quality samples (including reasoning traces).
 *   **优化器 / Optimizer**: AdamW (8-bit)
 
+## 🧪 复现性与实验结果 / Reproducibility & Results
+
+为了验证生成数据集的稳定性和微调流程的可复现性，我们进行了三次独立重复实验并发布了模型：
+To verify the stability of the generated dataset and the reproducibility of the fine-tuning process, we conducted three independent repeated experiments and published the models:
+
+*   **Experiment 1**: [xianyu564/train-qwen-demo](https://huggingface.co/xianyu564/train-qwen-demo)
+*   **Experiment 2**: [xianyu564/train-qwen-demo-a](https://huggingface.co/xianyu564/train-qwen-demo-a)
+*   **Experiment 3**: [xianyu564/train-qwen-demo-b](https://huggingface.co/xianyu564/train-qwen-demo-b)
+
+这些实验结果证明了该流水线在不同运行下均能产出具备一致推理能力的代码分析模型。
+These experimental results demonstrate that the pipeline consistently produces code analysis models with stable reasoning capabilities across different runs.
+
 ## 🧪 测试与评测 / Testing & Evaluation
 
 训练结束后，系统会自动运行一套测试流程。

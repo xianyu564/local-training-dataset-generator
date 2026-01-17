@@ -60,6 +60,7 @@ These repositories represent different scales and domains. In testing, we sample
 3.  **准备源码 / Prepare Source**: 将仓库放入 `data/0.cloned_repo/`.
 4.  **运行流水线 / Run Pipeline**: 详见 [使用指南](docs/USAGE.md). See [Usage Guide](docs/USAGE.md).
 5.  **模型微调 / Model Fine-tuning**: 详见 [微调指南](docs/FINETUNE.md). See [Fine-tuning Guide](docs/FINETUNE.md).
+    *   **Live Demo**: [Hugging Face Space](https://huggingface.co/spaces/xianyu564/train-qwen-demo)
 
 ---
 
