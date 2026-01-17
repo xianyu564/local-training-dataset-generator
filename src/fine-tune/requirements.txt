@@ -1,0 +1,14 @@
+﻿unsloth
+torch
+xformers
+transformers
+peft
+trl
+bitsandbytes
+accelerate
+datasets
+sentencepiece
+gradio
+huggingface_hub
+hf_transfer
+tensorboard

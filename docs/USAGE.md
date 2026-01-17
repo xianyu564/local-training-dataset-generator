@@ -72,7 +72,32 @@ python src/pipeline/dataset_compiler.py --batch-output-dir data/4.batch_output/ 
 *   **输入 / Input**: `data/4.batch_output/` 和 `data/1.slices/` (用于代码映射 / for code mapping)
 *   **输出 / Output**: `data/5.final_output/` 下的 `train_dataset_*.jsonl` 和 `dataset_statistics_*.json`。
 
-## 3. 目录结构总结 / Directory Structure Summary
+## 3. 模型微调 / Model Fine-tuning
+
+微调流程专门设计用于在本地或远程服务器上训练模型。
+
+The fine-tuning workflow is specifically designed for training models locally or on remote servers.
+
+1.  **准备环境 / Environment**:
+    ```bash
+    pip install -r src/fine-tune/requirements.txt
+    ```
+
+2.  **启动训练 (Local) / Start Training**:
+    ```bash
+    python src/fine-tune/train.py
+    ```
+    该脚本会自动搜索 `data/5.final_output/` 下的最新数据集并开始训练。
+    The script will automatically search for the latest dataset in `data/5.final_output/` and begin training.
+
+3.  **运行 UI (Gradio) / Run UI**:
+    ```bash
+    python src/fine-tune/app.py
+    ```
+    启动后可进行交互式聊天、测试或发起远程 Space 训练任务。
+    Launch for interactive chat, testing, or triggering remote Space training tasks.
+
+## 4. 目录结构总结 / Directory Structure Summary
 
 | 目录 / Directory | 阶段 / Stage | 说明 / Description |
 | :--- | :--- | :--- |
