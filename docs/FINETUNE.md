@@ -1,79 +1,58 @@
-# 模型微调 / Model Fine-tuning
+# 微调验证流程 / Fine-tuning & Validation
 
-本项目不仅提供数据生成能力，还包含了一套完整的微调流程，用于训练轻量化且具备推理能力的模型（如 Qwen2.5-0.5B-Instruct）。
+本项目包含一个轻量化的微调示例，用于验证生成的“智能训练数据集”是否能有效提升模型在代码分析与架构设计场景下的表现。
 
-This project provides not only data generation but also a complete fine-tuning workflow for training lightweight models with reasoning capabilities (e.g., Qwen2.5-0.5B-Instruct).
+This project includes a lightweight fine-tuning example to validate if the generated "Intelligent Training Dataset" effectively improves model performance in code analysis and architectural design scenarios.
 
-## 🚀 概述 / Overview
+## 1. 技术规格 / Technical Specifications
 
-微调的目标是让模型学习如何理解复杂的代码上下文并生成逻辑严密的推理轨迹。我们采用了参数高效的微调技术 (PEFT)，特别是 LoRA。
+为确保验证的可复现性与效率，我们采用了以下技术配置：
+To ensure reproducibility and efficiency, we used the following technical configuration:
 
-The goal of fine-tuning is to enable the model to understand complex code contexts and generate logically sound reasoning traces. We utilize Parameter-Efficient Fine-Tuning (PEFT) techniques, specifically LoRA.
+- **基础模型 / Base Model**: `Qwen2.5-0.5B-Instruct`
+- **训练框架 / Training Framework**: `unsloth` (优化显存占用与训练速度)
+- **硬件环境 / Hardware**: Hugging Face Space `T4-small` GPU
 
-## 🛠️ 环境准备 / Environment Setup
+## 2. 验证目标 / Validation Goals
 
-微调脚本位于 `src/fine-tune/` 目录下。
+- **格式对齐**：验证模型是否能正确输出 `<thought>` 标签包裹的推理轨迹。
+- **逻辑一致性**：验证模型在处理本地代码业务逻辑时的推理步骤是否合理。
+- **架构感知**：验证模型是否能基于给定的类架构骨架生成符合逻辑的设计方案。
 
-The fine-tuning scripts are located in the `src/fine-tune/` directory.
+## 2. 快速开始 / Quick Start
 
-1.  **安装依赖 / Install Dependencies**:
-    ```bash
-    pip install -r src/fine-tune/requirements.txt
-    ```
-    注：推荐在具备 GPU（如 NVIDIA T4/A100）的环境中运行。
-    Note: Running in a GPU environment (e.g., NVIDIA T4/A100) is recommended.
+### 环境准备 / Preparation
+微调部分依赖 `unsloth` 等库，建议在 GPU 环境下运行。
+```bash
+pip install -r src/fine-tune/requirements.txt
+```
 
-2.  **核心组件 / Core Components**:
-    *   `train.py`: 基于 Unsloth 的微调主脚本。 The main fine-tuning script based on Unsloth.
-    *   `app.py`: 提供 Gradio 界面，支持远程训练、聊天与测试。 A Gradio interface for remote training, chat, and testing.
-    *   `export_gguf.py`: 将微调后的 LoRA 权重导出为 GGUF 格式。 Export fine-tuned LoRA weights to GGUF format.
+### 训练 (LoRA) / Training
+```bash
+# 脚本会自动寻找 data/5.final_output/ 下的训练集
+python src/fine-tune/train.py
+```
 
-## 📈 训练配置 / Training Configuration
+### 推理测试 / Inference Test
+训练完成后，运行评测脚本对预设的 10 个代表性题目进行自动化推理。
+```bash
+python src/fine-tune/run_inference.py
+```
+结果将保存在 `lora/test_results_latest.txt` 中。
 
-我们在训练中使用了以下关键配置：
-We used the following key configurations during training:
+## 3. 评测题目设计 / Test Case Design
 
-*   **基础模型 / Base Model**: Qwen2.5-0.5B-Instruct
-*   **训练方法 / Method**: LoRA (Rank 16, Alpha 16)
-*   **数据集 / Dataset**: 自动生成的 1,400+ 个高质量样本（包含推理轨迹）。
-    1,400+ automatically generated high-quality samples (including reasoning traces).
-*   **优化器 / Optimizer**: AdamW (8-bit)
+为实事求是地评估效果，测试集包含：
+- **基础逻辑题**：测试对函数内部业务规则的提取。
+- **复杂设计题**：模拟真实需求，测试在现有类架构上扩展功能的设计能力。
 
-## 🧪 复现性与实验结果 / Reproducibility & Results
+详细的题目与验证集对应关系见 `src/fine-tune/data/test_mapping.md`。
 
-为了验证生成数据集的稳定性和微调流程的可复现性，我们进行了三次独立重复实验并发布了模型：
-To verify the stability of the generated dataset and the reproducibility of the fine-tuning process, we conducted three independent repeated experiments and published the models:
+## 4. 产物说明 / Artifacts
 
-*   **Experiment 1**: [xianyu564/train-qwen-demo](https://huggingface.co/xianyu564/train-qwen-demo)
-*   **Experiment 2**: [xianyu564/train-qwen-demo-a](https://huggingface.co/xianyu564/train-qwen-demo-a)
-*   **Experiment 3**: [xianyu564/train-qwen-demo-b](https://huggingface.co/xianyu564/train-qwen-demo-b)
-
-这些实验结果证明了该流水线在不同运行下均能产出具备一致推理能力的代码分析模型。
-These experimental results demonstrate that the pipeline consistently produces code analysis models with stable reasoning capabilities across different runs.
-
-## 🧪 测试与评测 / Testing & Evaluation
-
-训练结束后，系统会自动运行一套测试流程。
-After training, the system automatically runs a testing workflow.
-
-### 测试数据 / Test Data
-测试集位于 `src/fine-tune/data/`：
-*   `test_questions.csv`: 基础测试问题集。
-*   `test_questions_fullLength.jsonl`: 包含完整代码上下文的进阶测试集。
-*   `test_mapping.md`: 问题与源代码的对应关系。
-
-### 评测结果 / Results
-微调后的模型在代码逻辑解释（场景 1）和架构设计方案（场景 2）中表现出明显的推理步数提升。详细的评测报告保存在 `data/6.fine_tune_qwen/test_results.txt`。
-
-The fine-tuned model shows significant improvement in reasoning steps for code logic explanation (Scenario 1) and architectural design (Scenario 2). Detailed evaluation reports are saved in `data/6.fine_tune_qwen/test_results.txt`.
-
-## 📁 产物输出 / Output Artifacts
-
-输出文件保存在 `data/6.fine_tune_qwen/`：
-*   `adapter_model.safetensors`: LoRA 权重文件。
-*   `adapter_config.json`: 权重配置文件。
-*   `qwen2.5-0.5b-instruct.Q8_0.gguf`: 量化后的 GGUF 模型（可选）。
-
----
-更多关于如何运行微调的信息，请参考 `src/fine-tune/README.md`。
-For more information on how to run the fine-tuning, please refer to `src/fine-tune/README.md`.
+- **LoRA Weights**：位于 `lora/qwen2.5-0.5b-lora/`，可被 PEFT 加载。
+- **GGUF Model**：支持端侧推理部署。
+- **Evaluation Report**：详尽的推理轨迹记录，用于对比微调前后的效果差异。
+[demo](https://huggingface.co/xianyu564/train-qwen-demo)
+[demo-a](https://huggingface.co/xianyu564/train-qwen-demo-a)
+[demo-b](https://huggingface.co/xianyu564/train-qwen-demo-b)

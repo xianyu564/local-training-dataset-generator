@@ -19,9 +19,9 @@ tags:
 # Qwen2.5-0.5B-Instruct Fine-tuned with Reasoning Traces
 
 ## 🚀 Overview / 概述
-这是一个基于 Qwen2.5-0.5B-Instruct 微调的模型，专门针对本地代码库的分析与设计场景进行了优化。模型包含了详细的**推理轨迹 (Reasoning Traces)**，使其不仅能回答“是什么”，还能解释“为什么”。
+本项目是“本地代码仓智能训练数据生成框架”的验证环节。基于 Qwen2.5-0.5B-Instruct 进行微调，模型不仅能回答“是什么”，还能通过详尽的**推理轨迹 (Reasoning Traces)** 解释“为什么”。
 
-This is a model fine-tuned from Qwen2.5-0.5B-Instruct, optimized for local code analysis and architectural design. It includes detailed **Reasoning Traces**, enabling the model to not only answer "what" but also explain "why".
+This project is the validation stage of the "Intelligent Training Data Generation Framework for Local Repositories." Fine-tuned on Qwen2.5-0.5B-Instruct, the model answers "what" and explains "why" via detailed **Reasoning Traces**.
 
 ## 🎯 Dataset / 数据集
 模型使用了由 `local-training-dataset-generator` 自动生成的 1,400+ 个高质量样本进行微调。
