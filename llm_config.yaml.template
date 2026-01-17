@@ -1,0 +1,35 @@
+# LLM Configuration Template
+# LLM配置模板
+#
+# Copy this file to llm_config.yaml and fill in your API credentials
+# 复制此文件为llm_config.yaml并填写您的API凭证
+#
+# NOTE: llm_config.yaml is gitignored for security
+# 注意：llm_config.yaml已被gitignore以保证安全
+
+# OpenAI API Configuration
+# OpenAI API配置
+api_key: "your-api-key-here"
+
+# Model to use for batch processing
+# 用于批处理的模型
+model: "gpt-4o-mini"  # Recommended: gpt-4o-mini for cost efficiency
+
+# Maximum tokens per response
+# 每个响应的最大token数
+max_tokens: 2000
+
+# Temperature for generation (0.0-1.0)
+# 生成的温度参数 (0.0-1.0)
+temperature: 0.7
+
+# Batch API settings
+# 批处理API设置
+batch:
+  # Completion window (24h recommended for batch API)
+  # 完成时间窗口（批处理API建议24小时）
+  completion_window: "24h"
+  
+  # Description for the batch job
+  # 批处理任务描述
+  description: "Training dataset generation for code understanding"

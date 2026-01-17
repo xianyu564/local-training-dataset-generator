@@ -210,5 +210,20 @@ __marimo__/
 output/
 /tmp/datasets/
 
-# Generated data
-*.jsonl
+# Pipeline stage outputs and intermediate files
+slices/
+reviewed_slices/
+batch_input/
+batch_output/
+final_output/
+checkpoints/
+
+# LLM configuration (contains API keys)
+llm_config.yaml
+llm_config.json
+openai_config.yaml
+openai_config.json
+.env.local
+
+# Generated data (keep tracked versions but ignore intermediate)
+# *.jsonl files in specific directories will be tracked via negation if needed

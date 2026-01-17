@@ -72,8 +72,31 @@ pip install -r requirements.txt
 
 ## Quick Start / 快速开始
 
-### Example: Generate Dataset from Flask Repository
-### 示例：从Flask仓库生成数据集
+### Pipeline Approach (Recommended) / 流水线方法（推荐）
+
+The **new pipeline approach** provides a production-ready workflow with manual review checkpoints and LLM batch processing support:
+
+**新的流水线方法**提供了生产就绪的工作流，包含人工审核检查点和LLM批处理支持：
+
+```bash
+# Run the complete pipeline workflow
+# 运行完整的流水线工作流
+python examples/pipeline_workflow.py
+```
+
+**Pipeline stages** / **流水线阶段**:
+1. **Code Slicing** - Extract code segments → Manual review
+2. **Batch Processing** - Generate prompts for GPT Batch API
+3. **Review Generated Data** - Manual quality control
+4. **Compilation** - Statistics, shuffle, final JSONL output
+
+📖 **See [PIPELINE.md](PIPELINE.md) for detailed workflow guide**
+📖 **详细工作流指南请参见 [PIPELINE.md](PIPELINE.md)**
+
+### Legacy Direct Generation / 旧版直接生成
+
+The original direct generation approach (kept for backward compatibility):
+原始的直接生成方法（保留以向后兼容）：
 
 ```python
 from src.dataset_generator.core import DatasetGenerator
@@ -114,9 +137,15 @@ generator.export_dataset(
 )
 ```
 
-### Run Example Script / 运行示例脚本
+### Run Example Scripts / 运行示例脚本
 
 ```bash
+# New pipeline workflow (recommended)
+# 新的流水线工作流（推荐）
+python examples/pipeline_workflow.py
+
+# Legacy example
+# 旧版示例
 python examples/generate_flask_dataset.py
 ```
 
@@ -193,7 +222,59 @@ python examples/generate_flask_dataset.py
 
 ## Architecture / 架构
 
-The system consists of five main layers:
+The system supports two approaches:
+
+### 1. Pipeline Architecture (Production-Ready) / 流水线架构（生产就绪）
+
+A multi-stage pipeline with manual review checkpoints and LLM batch processing:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 1: Code Slicing                                      │
+│  Extract code segments from repositories                     │
+│  → Output: slices/*.jsonl                                   │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Checkpoint 1: Manual Review                                │
+│  Human review and filtering of code slices                  │
+│  → Output: reviewed_slices/*.jsonl                          │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 3: Batch Processing Preparation                      │
+│  Generate prompts for GPT Batch API                         │
+│  → Submit to OpenAI Batch API                               │
+│  → Download: batch_output/*.jsonl                           │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Checkpoint 2: Manual Review                                │
+│  Review LLM-generated Q&A and design solutions              │
+│  → Output: batch_output/*.jsonl (filtered)                  │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 5: Dataset Compilation                               │
+│  Statistics, shuffle, and merge                             │
+│  → Output: final_output/training_dataset.jsonl             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Benefits**:
+- ✅ Manual quality control at critical points
+- ✅ Cost-efficient batch processing
+- ✅ Clear separation of concerns
+- ✅ Production-ready with checkpoints
+- ✅ Supports GPT Batch API for scale
+
+📖 **See [PIPELINE.md](PIPELINE.md) for detailed guide**
+
+### 2. Direct Generation Architecture / 直接生成架构
+
+The original system consists of five main layers (kept for backward compatibility):
+
+原始系统包含五个主要层（保留以向后兼容）：
 
 1. **Input Layer** - Repository cloning and configuration
 2. **Analysis Layer** - Code parsing, AST analysis, pattern detection
