@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -489,29 +489,6 @@ class DatasetCompiler:
                 successful += 1
                 
         return round(successful / len(self.all_data) * 100, 2)
-    
-    def _count_by_field(self, data: List[Dict[str, Any]], field: str) -> Dict[str, int]:
-        """Count occurrences by field / 按字段统计出现次数"""
-        values = [item.get(field, "unknown") for item in data]
-        return dict(Counter(values))
-    
-    def _count_by_nested_field(self, data: List[Dict[str, Any]], 
-                               *fields: str) -> Dict[str, int]:
-        """Count occurrences by nested field / 按嵌套字段统计出现次数"""
-        values = []
-        for item in data:
-            current = item
-            for field in fields:
-                if isinstance(current, dict):
-                    current = current.get(field)
-                else:
-                    current = None
-                    break
-            if current:
-                values.append(current)
-            else:
-                values.append("unknown")
-        return dict(Counter(values))
     
     def _calculate_avg_reasoning_steps(self, data: List[Dict[str, Any]]) -> float:
         """Calculate average number of reasoning steps / 计算平均推理步骤数"""

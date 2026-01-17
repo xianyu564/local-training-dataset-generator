@@ -9,7 +9,6 @@ Slices Python code repositories into manageable segments.
 
 import json
 import ast
-import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -105,7 +104,6 @@ class SimpleCodeAnalyzer:
 
     def _extract_class(self, node: ast.ClassDef, content: str, file_path: str):
         """Extract class information / 提取类信息"""
-        lines = content.split('\n')
         start_line = node.lineno - 1
         end_line = getattr(node, 'end_lineno', start_line + 20) - 1
 
