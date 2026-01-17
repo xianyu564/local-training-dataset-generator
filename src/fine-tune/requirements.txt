@@ -1,4 +1,4 @@
-unsloth
+﻿unsloth
 torch
 xformers
 transformers
@@ -10,3 +10,5 @@ datasets
 sentencepiece
 gradio
 huggingface_hub
+hf_transfer
+tensorboard
