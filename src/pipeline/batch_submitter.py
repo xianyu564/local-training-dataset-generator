@@ -334,3 +334,5 @@ if __name__ == "__main__":
     exit(main())
 
 # D:\Code\Python\python.exe  src/pipeline/batch_submitter.py --config config.json --input-dir ./data/3.batch_input/repo_fastapi_light/ --output-dir ./data/4.batch_output/repo_fastapi_light/
+# D:\Code\Python\python.exe  src/pipeline/batch_submitter.py --config config.json --input-dir ./data/3.batch_input/repo_ecommerce_medium/ --output-dir ./data/4.batch_output/repo_ecommerce_medium/
+# D:\Code\Python\python.exe  src/pipeline/batch_submitter.py --config config.json --input-dir ./data/3.batch_input/repo_iot_special/ --output-dir ./data/4.batch_output/repo_iot_special/

@@ -405,6 +405,9 @@ print("Generated JSONL files:", results)
 # D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_ecommerce_medium/ --output-dir ./data/3.batch_input/repo_ecommerce_medium/   
 # D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_iot_special/ --output-dir ./data/3.batch_input/repo_iot_special/   
 
+# D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_ecommerce_medium/ --output-dir ./data/3.batch_input/repo_ecommerce_medium/   --max-scenario1 500 --max-scenario2 500
+# D:\Code\Python\python.exe  src/pipeline/scenario_processor.py --reviewed-dir ./data/2.reviewed_slices/repo_iot_special/ --output-dir ./data/3.batch_input/repo_iot_special/   --max-scenario1 200 --max-scenario2 200
+
 # =============================================================================
 # 场景区分 / Scenario Differentiation
 # =============================================================================
