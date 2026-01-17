@@ -4,7 +4,8 @@ Pipeline module for multi-stage training dataset generation
 """
 
 from .code_slicer import CodeSlicer
-from .batch_processor import BatchProcessor
+from .scenario_processor import ScenarioProcessor
+from .batch_submitter import BatchSubmitter
 from .dataset_compiler import DatasetCompiler
 
-__all__ = ['CodeSlicer', 'BatchProcessor', 'DatasetCompiler']
+__all__ = ['CodeSlicer', 'ScenarioProcessor', 'BatchSubmitter', 'DatasetCompiler']

@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-01-17T19:47:00.089517",
+  "by_repository": {
+    "repo_ecommerce_medium": {
+      "scenario1": 500,
+      "scenario2": 500,
+      "total": 1000
+    },
+    "repo_fastapi_light": {
+      "scenario1": 38,
+      "scenario2": 54,
+      "total": 92
+    },
+    "repo_iot_special": {
+      "scenario1": 200,
+      "scenario2": 200,
+      "total": 400
+    }
+  },
+  "scenario1": {
+    "total_count": 738,
+    "parse_success_rate": 97.7,
+    "avg_reasoning_steps": 6.05
+  },
+  "scenario2": {
+    "total_count": 754,
+    "parse_success_rate": 95.89,
+    "avg_decision_points": 2.97
+  },
+  "combined": {
+    "total_items": 1492,
+    "scenario1_percentage": 49.46,
+    "scenario2_percentage": 50.54,
+    "overall_parse_success_rate": 96.78
+  }
+}
