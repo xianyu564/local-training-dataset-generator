@@ -4,6 +4,7 @@ Utility functions for dataset generation
 """
 
 import json
+import random
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -154,8 +155,6 @@ def split_train_test(dataset: List[Dict[str, Any]],
     Returns:
         Tuple of (train_set, test_set)
     """
-    import random
-    
     shuffled = dataset.copy()
     random.shuffle(shuffled)
     

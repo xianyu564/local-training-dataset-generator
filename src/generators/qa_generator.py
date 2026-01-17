@@ -169,7 +169,7 @@ class QAGenerator:
                     example += ", ".join(func.parameters)
                 example += ")"
                 return (f"To use `{func.name}`, call it with the required parameters. "
-                       f"Example: `{example}`. {func.docstring.split(chr(10))[0] if func.docstring else ''}")
+                       f"Example: `{example}`. {func.docstring.split('\n')[0] if func.docstring else ''}")
         
         else:  # zh
             if q_type == "function_purpose":
@@ -200,7 +200,7 @@ class QAGenerator:
                     example += ", ".join(func.parameters)
                 example += ")"
                 return (f"要使用 `{func.name}`，使用所需参数调用它。"
-                       f"示例：`{example}`。{func.docstring.split(chr(10))[0] if func.docstring else ''}")
+                       f"示例：`{example}`。{func.docstring.split('\n')[0] if func.docstring else ''}")
         
         return "No specific answer available."
     
@@ -252,7 +252,7 @@ class QAGenerator:
                     step_number=2,
                     description="Review function documentation",
                     code_reference="docstring",
-                    reasoning=f"The docstring provides: '{func.docstring.split(chr(10))[0]}', "
+                    reasoning=f"The docstring provides: '{func.docstring.split('\n')[0]}', "
                              f"which explains the function's purpose."
                 ))
             
@@ -267,7 +267,7 @@ class QAGenerator:
             ))
             
             conclusion = (f"Based on the signature, documentation, and implementation, "
-                        f"`{func.name}` is designed to {func.docstring.split(chr(10))[0].lower() if func.docstring else 'perform its designated operation'}.")
+                        f"`{func.name}` is designed to {func.docstring.split('\n')[0].lower() if func.docstring else 'perform its designated operation'}.")
         
         else:  # zh
             steps.append(ReasoningStep(
@@ -283,7 +283,7 @@ class QAGenerator:
                     step_number=2,
                     description="查看函数文档",
                     code_reference="docstring",
-                    reasoning=f"文档字符串说明：'{func.docstring.split(chr(10))[0]}'，"
+                    reasoning=f"文档字符串说明：'{func.docstring.split('\n')[0]}'，"
                              f"解释了函数的目的。"
                 ))
             
@@ -297,7 +297,7 @@ class QAGenerator:
             ))
             
             conclusion = (f"根据签名、文档和实现，`{func.name}` 旨在"
-                        f"{func.docstring.split(chr(10))[0] if func.docstring else '执行其指定操作'}。")
+                        f"{func.docstring.split('\n')[0] if func.docstring else '执行其指定操作'}。")
         
         return ReasoningTrace(steps=steps, conclusion=conclusion)
     

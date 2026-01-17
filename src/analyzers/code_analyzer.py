@@ -183,7 +183,7 @@ class CodeAnalyzer:
                 name=node.name,
                 file_path=str(file_path.relative_to(self.repo_path)),
                 start_line=node.lineno,
-                end_line=node.end_lineno or node.lineno,
+                end_line=node.end_lineno if node.end_lineno is not None else node.lineno,
                 docstring=docstring,
                 parameters=parameters,
                 returns=returns,
