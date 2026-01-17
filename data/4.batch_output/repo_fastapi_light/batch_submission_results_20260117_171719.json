@@ -1,0 +1,22 @@
+{
+  "submitted_jobs": [
+    {
+      "batch_file": "data\\3.batch_input\\repo_fastapi_light\\scenario1_batch_input_20260117_171704.jsonl",
+      "file_id": "file-GeaQAZQPn5CU1xyPyKSHgB",
+      "batch_id": "batch_696b539d4414819087e05d859cd8c768",
+      "status": "validating",
+      "created_at": "2026-01-17T17:17:17.785373",
+      "completion_window": "24h"
+    },
+    {
+      "batch_file": "data\\3.batch_input\\repo_fastapi_light\\scenario2_batch_input_20260117_171704.jsonl",
+      "file_id": "file-5xo4C9GTEYb8zQJAiZj1v5",
+      "batch_id": "batch_696b539eda5481909dab148e3ad590d6",
+      "status": "validating",
+      "created_at": "2026-01-17T17:17:19.163617",
+      "completion_window": "24h"
+    }
+  ],
+  "failed_submissions": [],
+  "timestamp": "2026-01-17T17:17:12.572977"
+}

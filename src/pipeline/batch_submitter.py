@@ -53,12 +53,19 @@ class BatchSubmitter:
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
         with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
+            try:
+                full_config = json.load(f)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Failed to parse config.json: {e}")
 
-        required_keys = ["api_key"]
-        missing_keys = [key for key in required_keys if key not in config]
-        if missing_keys:
-            raise ValueError(f"Missing required config keys: {missing_keys}")
+        # Handle nested config structure (check 'openai' or top-level)
+        config = full_config.get("openai", full_config)
+
+        if not isinstance(config, dict):
+            raise ValueError(f"Config must be a dictionary, got {type(config)}")
+
+        if "api_key" not in config:
+            raise ValueError(f"Missing 'api_key' in config (either at top-level or under 'openai' key). Found keys: {list(config.keys())}")
 
         return config
 
@@ -316,3 +323,5 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
+
+# D:\Code\Python\python.exe  src/pipeline/batch_submitter.py --config config.json --input-dir ./data/3.batch_input/repo_fastapi_light/ --output-dir ./data/4.batch_output/repo_fastapi_light/

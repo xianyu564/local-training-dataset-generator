@@ -24,15 +24,19 @@ class ScenarioProcessor:
     将审核后的切片处理为批处理输入JSONL文件
     """
 
-    def __init__(self, output_dir: str = "data/3.batch_input"):
+    def __init__(self, output_dir: str = "data/3.batch_input", config_path: str = "config.json"):
         """
         Initialize ScenarioProcessor
 
         Args:
             output_dir: Directory to save batch input JSONL files
+            config_path: Path to configuration file for model settings
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load model configuration
+        self.config = self._load_config(config_path)
 
         # Predefined requirements for scenario 2
         self.scenario2_requirements = [
@@ -62,6 +66,27 @@ class ScenarioProcessor:
                 "constraints": ["使用异步队列处理", "支持模板化消息"]
             }
         ]
+
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load configuration for model settings"""
+        config_file = Path(config_path)
+
+        if config_file.exists():
+            with open(config_file, 'r', encoding='utf-8') as f:
+                full_config = json.load(f)
+
+            # Handle nested config structure
+            if "openai" in full_config:
+                return full_config["openai"]
+            else:
+                return full_config
+        else:
+            # Default configuration
+            return {
+                "model": "gpt-4o-mini",
+                "max_tokens": 2000,
+                "temperature": 0.7
+            }
 
     def process_reviewed_slices(self, reviewed_slices_dir: str = "data/2.reviewed_slices",
                                max_scenario1: int = 100, max_scenario2: int = 50) -> Dict[str, str]:
@@ -157,7 +182,7 @@ class ScenarioProcessor:
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": "gpt-5-nano-20250807",
+                "model": self.config.get("model", "gpt-5-nano-20250807"),
                 "messages": [
                     {
                         "role": "system",
@@ -168,8 +193,7 @@ class ScenarioProcessor:
                         "content": prompt
                     }
                 ],
-                "max_tokens": 2000,
-                "temperature": 0.7
+                "max_tokens": self.config.get("max_tokens", 128000)
             }
         }
 
@@ -189,7 +213,7 @@ class ScenarioProcessor:
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": "gpt-5-nano-20250807",
+                "model": self.config.get("model", "gpt-5-nano-20250807"),
                 "messages": [
                     {
                         "role": "system",
@@ -200,8 +224,7 @@ class ScenarioProcessor:
                         "content": prompt
                     }
                 ],
-                "max_tokens": 2000,
-                "temperature": 0.7
+                "max_tokens": self.config.get("max_tokens", 128000),
             }
         }
 
