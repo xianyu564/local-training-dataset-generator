@@ -217,6 +217,7 @@ batch_input/
 batch_output/
 final_output/
 checkpoints/
+archive/
 
 # LLM configuration (contains API keys)
 llm_config.yaml
@@ -226,4 +227,15 @@ openai_config.json
 .env.local
 
 # Generated data (keep tracked versions but ignore intermediate)
-# *.jsonl files in specific directories will be tracked via negation if needed
+code_slices.jsonl
+scenario1_batch_input.jsonl
+scenario2_batch_input.jsonl
+scenario1_responses.jsonl
+scenario2_responses.jsonl
+training_dataset.jsonl
+dataset_statistics.json
+review_summary.md
+
+# Temporary files
+tmp/
+.DS_Store
