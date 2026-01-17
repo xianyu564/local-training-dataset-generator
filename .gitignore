@@ -237,6 +237,8 @@ review_summary.md
 
 # Fine-tune model weight
 src/fine-tune/data/
+data/6.fine_tune_qwen\qwen2.5-0.5b-instruct.Q8_0.gguf
+*.gguf
 
 # Temporary files
 tmp/
