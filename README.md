@@ -59,6 +59,7 @@ These repositories represent different scales and domains. In testing, we sample
 2.  **配置 / Configuration**: 编辑 `config.json` (提供 OpenAI API Key).
 3.  **准备源码 / Prepare Source**: 将仓库放入 `data/0.cloned_repo/`.
 4.  **运行流水线 / Run Pipeline**: 详见 [使用指南](docs/USAGE.md). See [Usage Guide](docs/USAGE.md).
+5.  **模型微调 / Model Fine-tuning**: 详见 [微调指南](docs/FINETUNE.md). See [Fine-tuning Guide](docs/FINETUNE.md).
 
 ---
 
@@ -66,3 +67,4 @@ These repositories represent different scales and domains. In testing, we sample
 - [使用指南 (Usage Guide)](docs/USAGE.md)
 - [设计文档 (Design Document)](docs/DESIGN.md)
 - [处理记录 (Processing Records)](docs/RECORDS.md)
+- [微调指南 (Fine-tuning Guide)](docs/FINETUNE.md)

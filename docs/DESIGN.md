@@ -76,12 +76,26 @@ The final stage of the pipeline, responsible for extracting nested JSON from LLM
 *   Avg Reasoning Steps: `total_steps / successful_items`，反映数据集的逻辑深度。 Reflects the logical depth of the dataset.
 *   Parse Success Rate: 衡量 LLM 遵循 JSON 输出格式的质量。 Measures the quality of LLM adherence to JSON output format.
 
-## 5. 目录与分层 / Directory & Layering
+## 5. 模型微调设计 / Model Fine-tuning Design
+
+我们为训练具有强推理能力的轻量化模型专门设计了微调层。
+
+We specially designed a fine-tuning layer for training lightweight models with strong reasoning capabilities.
+
+*   **技术栈 / Tech Stack**: 基于 `Unsloth` 优化库，显著降低显存占用并提升训练速度。
+    Based on the `Unsloth` optimization library, significantly reducing memory footprint and boosting training speed.
+*   **训练目标 / Training Objective**: 优化模型在特定的指令（Instruction）下输出结构化推理过程（Thought）和专家级回答。
+    Optimize the model to output structured reasoning processes (Thought) and expert-level answers under specific instructions.
+*   **验证机制 / Validation Mechanism**: 包含自动化评测脚本，通过 10 个具有代表性的代码分析与架构设计题目评估模型的泛化能力。
+    Includes automated evaluation scripts to assess model generalization through 10 representative code analysis and architectural design problems.
+
+## 6. 目录与分层 / Directory & Layering
 ```text
 data/
 ├── 0.cloned_repo/   # 原始代码 (Input) / Original Code
 ├── 1.slices/        # 静态分析产物 / Static Analysis Artifacts
 ├── 3.batch_input/   # LLM 任务清单 / LLM Task List
 ├── 4.batch_output/  # LLM 原始回执 (Async) / Raw LLM Responses
-└── 5.final_output/  # 最终训练数据集 (Output) / Final Training Dataset
+├── 5.final_output/  # 最终训练数据集 (Output) / Final Training Dataset
+└── 6.fine_tune_qwen/ # 微调产物 (Weights, Logs, Results) / Fine-tuning Artifacts
 ```
