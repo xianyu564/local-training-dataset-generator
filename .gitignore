@@ -244,8 +244,9 @@ src/fine-tune/data/*
 
 data/6.fine_tune_qwen/
 !data/6.fine_tune_qwen/test_results.txt
+!data/6.fine_tune_qwen/adapter_config.json
+!data/6.fine_tune_qwen/adapter_model.safetensors
 *.gguf
-*.safetensors
 *.bin
 
 # Temporary files
