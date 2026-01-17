@@ -220,11 +220,7 @@ checkpoints/
 archive/
 
 # LLM configuration (contains API keys)
-llm_config.yaml
-llm_config.json
-openai_config.yaml
-openai_config.json
-.env.local
+config.json
 
 # Generated data (keep tracked versions but ignore intermediate)
 code_slices.jsonl

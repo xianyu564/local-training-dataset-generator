@@ -1,14 +1,14 @@
+# -*- coding: utf-8 -*-
 """
-Batch Processor - Stage 3 of the pipeline
-批处理器 - 流水线第三阶段
+Scenario Processor - Convert reviewed slices to batch input
+场景处理器 - 将审核后的切片转换为批处理输入
 
-This module prepares code slices for GPT batch API processing and handles responses.
-该模块为GPT批处理API准备代码切片并处理响应。
+Converts data/2.reviewed_slices to data/3.batch_input for scenarios 1 and 2.
+将 data/2.reviewed_slices 转换为 data/3.batch_input，用于场景1和场景2。
 """
 
 import json
 import logging
-import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -27,69 +27,91 @@ class BatchRequest:
     body: Dict[str, Any]
 
 
-class BatchProcessor:
+class ScenarioProcessor:
     """
-    Batch Processor for generating training data using LLM batch APIs
-    使用LLM批处理API生成训练数据的批处理器
+    Process reviewed slices into batch input for scenarios 1 and 2
+    将审核后的切片处理为场景1和场景2的批处理输入
     """
-    
-    def __init__(self, config_path: str = "llm_config.yaml", 
-                 output_dir: str = "batch_input"):
+
+    def __init__(self, output_dir: str = "data/3.batch_input"):
         """
-        Initialize BatchProcessor
-        
+        Initialize ScenarioProcessor
+
         Args:
-            config_path: Path to LLM configuration file (gitignored)
             output_dir: Directory to save batch input files
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        self.config = self._load_config(config_path)
-        
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load LLM configuration / 加载LLM配置"""
-        config_file = Path(config_path)
-        
-        if not config_file.exists():
-            logger.warning(f"Config file {config_path} not found. Using defaults.")
-            return {
-                "model": "gpt-4o-mini",  # Default to mini for cost efficiency
-                "max_tokens": 2000,
-                "temperature": 0.7
-            }
-        
-        with open(config_file, 'r', encoding='utf-8') as f:
-            if config_path.endswith('.yaml') or config_path.endswith('.yml'):
-                return yaml.safe_load(f)
-            else:
-                return json.load(f)
-    
-    def create_scenario1_prompts(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
+
+    def process_reviewed_slices(self, reviewed_slices_dir: str = "data/2.reviewed_slices",
+                               max_scenario1: int = 100, max_scenario2: int = 50) -> Dict[str, str]:
         """
-        Create prompts for Scenario 1 (Q&A with reasoning trace)
-        为场景1创建提示（带推理轨迹的问答）
-        
+        Process all reviewed slice files into batch input
+        将所有审核后的切片文件处理为批处理输入
+
         Args:
-            slices: List of code slice dictionaries
-            
+            reviewed_slices_dir: Directory containing reviewed slice JSONL files
+            max_scenario1: Maximum items for scenario 1 (functions)
+            max_scenario2: Maximum items for scenario 2 (classes)
+
         Returns:
-            List of BatchRequest objects
+            Dictionary mapping scenario names to output file paths
         """
+        reviewed_dir = Path(reviewed_slices_dir)
+        if not reviewed_dir.exists():
+            raise FileNotFoundError(f"Reviewed slices directory not found: {reviewed_dir}")
+
+        # Collect all reviewed slices
+        all_slices = []
+        for jsonl_file in reviewed_dir.glob("*.jsonl"):
+            logger.info(f"Loading reviewed slices from: {jsonl_file}")
+            with open(jsonl_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        all_slices.append(json.loads(line))
+
+        logger.info(f"Total reviewed slices loaded: {len(all_slices)}")
+
+        # Split by scenario
+        scenario1_slices = [s for s in all_slices if s.get('type') == 'function'][:max_scenario1]
+        scenario2_slices = [s for s in all_slices if s.get('type') == 'class'][:max_scenario2]
+
+        logger.info(f"Scenario 1 slices: {len(scenario1_slices)}")
+        logger.info(f"Scenario 2 slices: {len(scenario2_slices)}")
+
+        # Create batch requests
+        results = {}
+
+        if scenario1_slices:
+            scenario1_requests = self._create_scenario1_requests(scenario1_slices)
+            scenario1_file = self._export_batch_requests(scenario1_requests, "scenario1")
+            results["scenario1"] = scenario1_file
+            logger.info(f"Scenario 1 batch input created: {scenario1_file}")
+
+        if scenario2_slices:
+            scenario2_requests = self._create_scenario2_requests(scenario2_slices)
+            scenario2_file = self._export_batch_requests(scenario2_requests, "scenario2")
+            results["scenario2"] = scenario2_file
+            logger.info(f"Scenario 2 batch input created: {scenario2_file}")
+
+        return results
+
+    def _create_scenario1_requests(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
+        """Create batch requests for Scenario 1 (Q&A with reasoning trace)"""
         requests = []
-        
+
         for slice_data in slices:
             custom_id = f"scenario1_{slice_data['id']}"
-            
+
             # Create prompt for Q&A generation with reasoning trace
             prompt = self._build_scenario1_prompt(slice_data)
-            
+
             request = BatchRequest(
                 custom_id=custom_id,
                 method="POST",
                 url="/v1/chat/completions",
                 body={
-                    "model": self.config.get("model", "gpt-4o-mini"),
+                    "model": "gpt-4o-mini",  # Default model
                     "messages": [
                         {
                             "role": "system",
@@ -100,40 +122,30 @@ class BatchProcessor:
                             "content": prompt
                         }
                     ],
-                    "max_tokens": self.config.get("max_tokens", 2000),
-                    "temperature": self.config.get("temperature", 0.7)
+                    "max_tokens": 2000,
+                    "temperature": 0.7
                 }
             )
             requests.append(request)
-        
-        logger.info(f"Created {len(requests)} Scenario 1 batch requests")
+
         return requests
-    
-    def create_scenario2_prompts(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
-        """
-        Create prompts for Scenario 2 (Design solutions with reasoning)
-        为场景2创建提示（带推理的设计方案）
-        
-        Args:
-            slices: List of code slice dictionaries
-            
-        Returns:
-            List of BatchRequest objects
-        """
+
+    def _create_scenario2_requests(self, slices: List[Dict[str, Any]]) -> List[BatchRequest]:
+        """Create batch requests for Scenario 2 (Design solutions with reasoning)"""
         requests = []
-        
+
         for slice_data in slices:
             custom_id = f"scenario2_{slice_data['id']}"
-            
+
             # Create prompt for design solution generation
             prompt = self._build_scenario2_prompt(slice_data)
-            
+
             request = BatchRequest(
                 custom_id=custom_id,
                 method="POST",
                 url="/v1/chat/completions",
                 body={
-                    "model": self.config.get("model", "gpt-4o-mini"),
+                    "model": "gpt-4o-mini",  # Default model
                     "messages": [
                         {
                             "role": "system",
@@ -144,22 +156,21 @@ class BatchProcessor:
                             "content": prompt
                         }
                     ],
-                    "max_tokens": self.config.get("max_tokens", 2000),
-                    "temperature": self.config.get("temperature", 0.7)
+                    "max_tokens": 2000,
+                    "temperature": 0.7
                 }
             )
             requests.append(request)
-        
-        logger.info(f"Created {len(requests)} Scenario 2 batch requests")
+
         return requests
-    
+
     def _build_scenario1_prompt(self, slice_data: Dict[str, Any]) -> str:
         """Build prompt for Scenario 1 / 构建场景1的提示"""
         code_snippet = slice_data['code_snippet']
         file_path = slice_data['file_path']
         name = slice_data['name']
         context = slice_data.get('context', {})
-        
+
         prompt = f"""Analyze the following code from {file_path}:
 
 ```python
@@ -192,15 +203,15 @@ Please generate a Q&A pair about this code with the following structure in JSON 
 }}
 
 Generate the response in valid JSON format only."""
-        
+
         return prompt
-    
+
     def _build_scenario2_prompt(self, slice_data: Dict[str, Any]) -> str:
         """Build prompt for Scenario 2 / 构建场景2的提示"""
         code_snippet = slice_data['code_snippet']
         file_path = slice_data['file_path']
         name = slice_data['name']
-        
+
         prompt = f"""Analyze the following code pattern from {file_path}:
 
 ```python
@@ -239,31 +250,23 @@ Please generate a design solution that someone might implement based on this pat
 }}
 
 Generate the response in valid JSON format only."""
-        
+
         return prompt
-    
-    def export_batch_requests(self, requests: List[BatchRequest], 
-                             scenario: str, output_file: Optional[str] = None) -> str:
+
+    def _export_batch_requests(self, requests: List[BatchRequest],
+                              scenario: str, output_file: Optional[str] = None) -> str:
         """
         Export batch requests to JSONL file for batch API
         导出批处理请求到JSONL文件
-        
-        Args:
-            requests: List of BatchRequest objects
-            scenario: "scenario1" or "scenario2"
-            output_file: Optional output file path
-            
-        Returns:
-            Path to exported file
         """
         if not output_file:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_file = self.output_dir / f"{scenario}_batch_input_{timestamp}.jsonl"
         else:
             output_file = Path(output_file)
-        
+
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             for req in requests:
                 batch_item = {
@@ -274,65 +277,40 @@ Generate the response in valid JSON format only."""
                 }
                 json_line = json.dumps(batch_item, ensure_ascii=False)
                 f.write(json_line + '\n')
-        
+
         logger.info(f"Exported {len(requests)} batch requests to {output_file}")
         return str(output_file)
-    
-    def parse_batch_responses(self, response_file: str, scenario: str) -> List[Dict[str, Any]]:
-        """
-        Parse batch API response file
-        解析批处理API响应文件
-        
-        Args:
-            response_file: Path to batch response JSONL file
-            scenario: "scenario1" or "scenario2"
-            
-        Returns:
-            List of parsed training data items
-        """
-        results = []
-        
-        with open(response_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                
-                response = json.loads(line)
-                custom_id = response.get('custom_id', '')
-                
-                # Extract the actual response content
-                if 'response' in response:
-                    response_body = response['response']
-                    if 'body' in response_body:
-                        choices = response_body['body'].get('choices', [])
-                        if choices:
-                            content = choices[0]['message']['content']
-                            
-                            # Parse JSON from content
-                            try:
-                                # Extract JSON from markdown code blocks if present
-                                content_cleaned = content.strip()
-                                if '```json' in content_cleaned:
-                                    # Split by ```json and take the part after it
-                                    parts = content_cleaned.split('```json')
-                                    if len(parts) > 1:
-                                        # Now split by ``` to get the content
-                                        json_parts = parts[1].split('```')
-                                        if json_parts:
-                                            content_cleaned = json_parts[0].strip()
-                                elif '```' in content_cleaned:
-                                    # Generic code block
-                                    parts = content_cleaned.split('```')
-                                    if len(parts) >= 3:
-                                        # Take the middle part (between first and last ```)
-                                        content_cleaned = parts[1].strip()
-                                
-                                parsed_data = json.loads(content_cleaned)
-                                parsed_data['id'] = custom_id
-                                parsed_data['scenario'] = scenario
-                                results.append(parsed_data)
-                            except json.JSONDecodeError as e:
-                                logger.warning(f"Failed to parse JSON for {custom_id}: {e}")
-        
-        logger.info(f"Parsed {len(results)} responses from {response_file}")
-        return results
+
+
+def main():
+    """Command line interface / 命令行接口"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Convert reviewed slices to batch input")
+    parser.add_argument("--reviewed-dir", "-r", default="data/2.reviewed_slices",
+                       help="Directory containing reviewed slice JSONL files")
+    parser.add_argument("--output-dir", "-o", default="data/3.batch_input",
+                       help="Output directory for batch input files")
+    parser.add_argument("--max-scenario1", "-s1", type=int, default=100,
+                       help="Maximum items for scenario 1")
+    parser.add_argument("--max-scenario2", "-s2", type=int, default=50,
+                       help="Maximum items for scenario 2")
+
+    args = parser.parse_args()
+
+    # Process reviewed slices
+    processor = ScenarioProcessor(output_dir=args.output_dir)
+    results = processor.process_reviewed_slices(
+        reviewed_slices_dir=args.reviewed_dir,
+        max_scenario1=args.max_scenario1,
+        max_scenario2=args.max_scenario2
+    )
+
+    # Print results
+    print("Processing complete!")
+    for scenario, file_path in results.items():
+        print(f"  {scenario}: {file_path}")
+
+
+if __name__ == "__main__":
+    main()
